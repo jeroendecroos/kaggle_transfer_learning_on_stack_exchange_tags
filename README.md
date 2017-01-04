@@ -15,6 +15,11 @@ use "make create_environment" to create virtualenv
 workon <blabla>            <- see make message
 make requirements
 
+
+you can get the files with 
+First accepting rules on the site
+kg download -c transfer-learning-on-stack-exchange-tags -p <password> -u <username>
+
 Project Organization
 ------------
 
