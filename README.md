@@ -7,13 +7,13 @@ kaggle competition project to try to predict tags from models trainend on unrela
 Developing
 ------------
 Set in env:
-export WORKON_HOME=$HOME/.virtualenvs
-export PROJECT_HOME=$HOME/Devel
-source /usr/local/bin/virtualenvwrapper.sh
+export WORKON_HOME=$HOME/.virtualenvs  
+export PROJECT_HOME=$HOME/Devel  
+source /usr/local/bin/virtualenvwrapper.sh  
 
-use "make create_environment" to create virtualenv
-workon <blabla>            <- see make message
-make requirements
+use "make create_environment" to create virtualenv  
+workon <blabla>            <- see make message  
+make requirements  
 
 
 you can get the files with 
