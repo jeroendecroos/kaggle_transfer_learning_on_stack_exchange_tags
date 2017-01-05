@@ -7,9 +7,9 @@ kaggle competition project to try to predict tags from models trainend on unrela
 Developing
 ------------
 1)  Set in env:  
-export WORKON_HOME=$HOME/.virtualenvs  
-export PROJECT_HOME=$HOME/Devel  
-source /usr/local/bin/virtualenvwrapper.sh  
+  export WORKON_HOME=$HOME/.virtualenvs  
+  export PROJECT_HOME=$HOME/Devel  
+  source /usr/local/bin/virtualenvwrapper.sh  
 
 2)  use "make create_environment" to create virtualenv  
 3)  workon <blabla>            <- see make message  
@@ -18,7 +18,7 @@ source /usr/local/bin/virtualenvwrapper.sh
 
 5)  you can get the files with:  
   * First accepting rules on the site  
-  *kg download -c transfer-learning-on-stack-exchange-tags -p <password> -u <username>  
+  * kg download -c transfer-learning-on-stack-exchange-tags -p <password> -u <username>  
 
 
 Project Organization
