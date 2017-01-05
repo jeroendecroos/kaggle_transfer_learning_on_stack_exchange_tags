@@ -16,9 +16,9 @@ source /usr/local/bin/virtualenvwrapper.sh
 4)  make requirements  
 
 
-5)  you can get the files with: 
-    1) First accepting rules on the site  
-    2) kg download -c transfer-learning-on-stack-exchange-tags -p <password> -u <username>
+5)  you can get the files with:  
+  * First accepting rules on the site  
+  *kg download -c transfer-learning-on-stack-exchange-tags -p <password> -u <username>  
 
 
 Project Organization
