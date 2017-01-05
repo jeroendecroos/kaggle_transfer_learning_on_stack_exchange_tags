@@ -7,6 +7,7 @@ kaggle competition project to try to predict tags from models trainend on unrela
 Developing
 ------------
 1)  Set in env:  
+
   export WORKON_HOME=$HOME/.virtualenvs  
   export PROJECT_HOME=$HOME/Devel  
   source /usr/local/bin/virtualenvwrapper.sh  
