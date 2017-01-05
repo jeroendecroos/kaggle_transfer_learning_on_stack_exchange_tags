@@ -8,9 +8,9 @@ Developing
 ------------
 1)  Set in env:  
 
-  export WORKON_HOME=$HOME/.virtualenvs  
-  export PROJECT_HOME=$HOME/Devel  
-  source /usr/local/bin/virtualenvwrapper.sh  
+   export WORKON_HOME=$HOME/.virtualenvs  
+   export PROJECT_HOME=$HOME/Devel  
+   source /usr/local/bin/virtualenvwrapper.sh  
 
 2)  use "make create_environment" to create virtualenv  
 3)  workon <blabla>            <- see make message  
