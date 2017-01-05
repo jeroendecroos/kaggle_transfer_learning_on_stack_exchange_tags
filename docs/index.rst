@@ -22,3 +22,8 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+
+Useful links
+============
+* preprocessing: https://www.kaggle.com/l3nnys/transfer-learning-on-stack-exchange-tags/useful-text-preprocessing-on-the-datasets
