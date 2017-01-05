@@ -41,7 +41,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'kaggle_transfer_learning_on_stack_exchange_tags'
+project = 'kaggle_transfer_learning_on_stack_exchange_tags'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -185,8 +185,8 @@ latex_elements = {
 latex_documents = [
     ('index',
      'kaggle_transfer_learning_on_stack_exchange_tags.tex',
-     u'kaggle_transfer_learning_on_stack_exchange_tags Documentation',
-     u"Ilya_Jeroen", 'manual'),
+     'kaggle_transfer_learning_on_stack_exchange_tags Documentation',
+     "Ilya_Jeroen", 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -215,8 +215,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'kaggle_transfer_learning_on_stack_exchange_tags', u'kaggle_transfer_learning_on_stack_exchange_tags Documentation',
-     [u"Ilya_Jeroen"], 1)
+    ('index', 'kaggle_transfer_learning_on_stack_exchange_tags', 'kaggle_transfer_learning_on_stack_exchange_tags Documentation',
+     ["Ilya_Jeroen"], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -229,9 +229,10 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    ('index', 'kaggle_transfer_learning_on_stack_exchange_tags', u'kaggle_transfer_learning_on_stack_exchange_tags Documentation',
-     u"Ilya_Jeroen", 'kaggle_transfer_learning_on_stack_exchange_tags',
-     'kaggle competition project to try to predict tags from models trainend on unrelated topics'', 'Miscellaneous'),
+    ('index', 'kaggle_transfer_learning_on_stack_exchange_tags', 'kaggle_transfer_learning_on_stack_exchange_tags Documentation',
+     "Ilya_Jeroen", 'kaggle_transfer_learning_on_stack_exchange_tags',
+     'kaggle competition project to try to predict tags from models trainend on unrelated topics',
+     'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.
