@@ -18,7 +18,9 @@ from room007.data import info
 
 def get_dataframes():
     data_info = info.RawData()
-    dataframes = {dataname: pandas.read_csv(filepath) for dataname, filepath in zip(data_info.training_sets, data_info.training_files())
+    dataframes = {dataname: pandas.read_csv(filepath)
+                  for dataname, filepath in
+                  zip(data_info.training_sets, data_info.training_files())
                   }
     return dataframes
 

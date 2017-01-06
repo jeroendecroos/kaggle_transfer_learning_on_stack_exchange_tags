@@ -31,17 +31,17 @@ class Data(object):
     def _iterate_files(self, data_sets):
         for filebase in data_sets:
             filename = filebase + self.extension
-            filepath = os.path.join(self.data_dir, filename)
+            filepath = join(self.data_dir, filename)
             yield filepath
 
 
 class RawData(Data):
     def __init__(self):
         super().__init__()
-        self.data_dir = os.path.join(PROJECT_DIR, 'data', 'raw')
+        self.data_dir = join(PROJECT_DIR, 'data', 'raw')
 
 
 class CleanedData(Data):
     def __init__(self):
         super().__init__()
-        self.data_dir = os.path.join(PROJECT_DIR, 'data', 'interim')
+        self.data_dir = join(PROJECT_DIR, 'data', 'interim')
