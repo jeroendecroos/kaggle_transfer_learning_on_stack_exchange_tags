@@ -1,18 +1,19 @@
 import re
 import pandas
+import string
+import collections
 from bs4 import BeautifulSoup
 
-import info
+from src.data import info
 
 def get_dataframes():
     data_info = info.RawData()
-    dataframes = {dataname, panda.read_csv(filepath)
-                  for zip(info.training_sets, info.training_files)
+    dataframes = {dataname: pandas.read_csv(filepath) for dataname, filepath in zip(data_info.training_sets, data_info.training_files())
                   }
     return dataframes
 
 def stripTagsAndUris(x):
-   uri_re = r'(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:\'".,<>?«»“”‘’]))'
+    uri_re = r'(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:\'".,<>?«»“”‘’]))'
 
     if x:
         # BeautifulSoup on content
@@ -43,15 +44,16 @@ def clean_data(dataframes):
         df["content"] = df["content"].map(removePunctuation)
         df["tags"] = df["tags"].map(lambda x: x.split())
 
-def set_tag_in_data(data):
-    pass
+def save_data(data):
+    data_info = info.CleanedData()
+    for data_set, data_filepath in zip(data_info.training_sets, data_info.training_files()):
+        print(data_filepath)
+        data[data_set].to_csv(data_filepath, index=False)
 
 def main():
     data = get_dataframes()
     clean_data(data)
-		set_tag_in_data(data)
-		
-
+    save_data(data)
 
 if __name__ == '__main__':
     main()

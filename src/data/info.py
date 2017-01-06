@@ -8,11 +8,18 @@ def project_dir():
 
 class Data(object):
     def __init__(self):
-        self.training_sets = []
-        self.test_sets = ['']
-        self.data_dir = os.path.join(project_dir(), 'data', '')
-        self.extension = ''
-        self.header = []
+        self.training_sets = [
+                'biology',
+                'cooking',
+                'crypto',
+                'diy',
+                'robotics',
+                'travel',
+                ]
+        self.test_sets = ['test']
+        self.extension = '.csv'
+        self.header = ['id', 'title', 'content', 'tags']
+        self.data_dir = ''
 
     def training_files(self):
         for f in self._iterate_files(self.training_sets):
@@ -31,26 +38,11 @@ class Data(object):
 
 class RawData(Data):
     def __init__(self):
-        self.training_sets = [
-                'biology',
-                'cooking',
-                'crypto',
-                'diy',
-                'robotics',
-                'travel',
-                ]
-        self.test_sets = ['test']
+        super().__init__()
         self.data_dir = os.path.join(project_dir(), 'data', 'raw')
-        self.extension = '.csv'
-        self.header = ['id', 'title', 'content', 'tags']
 
 
 class CleanedData(Data):
     def __init__(self):
-        self.training_sets = [
-                'merged',
-                ]
-        self.test_sets = ['test']
-        self.data_dir = os.path.join(project_dir(), 'data', 'raw')
-        self.extension = '.csv'
-        self.header = ['id', 'title', 'content', 'tags']
+        super().__init__()
+        self.data_dir = os.path.join(project_dir(), 'data', 'interim')
