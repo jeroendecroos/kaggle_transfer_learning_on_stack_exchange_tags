@@ -39,12 +39,17 @@ def strip_tags_and_uris(x):
         return ""
 
 def remove_punctuation(x):
-    # Lowercasing all words
+    # Lowercase all words.
     x = x.lower()
-    # Removing non ASCII chars
-    x = re.sub(r'[^\x00-\x7f]',r' ',x)
-    # Removing (replacing with empty spaces actually) all the punctuations
-    return re.sub("["+string.punctuation+"]", " ", x)
+    # Remove non ASCII chars.
+    # XXX There are better ways to normalize (e.g. nlu-norm's character map).
+    # By doing this, we lose words like "fiancèe".
+    x = re.sub(r'[^\x00-\x7f]', r' ', x)
+    # Remove (replace with empty spaces actually) all punctuation.
+    # XXX By doing this, we also discard apostrophes, transforming words like
+    # "don't" or "we'll" into non-words. We probably don't lose much important
+    # information by doing this.
+    return re.sub("[" + string.punctuation + "]", " ", x)
 
 def clean_data(dataframes):
     # This could take a while
