@@ -1,10 +1,20 @@
-import re
-import pandas
-import string
-import collections
-from bs4 import BeautifulSoup
+#!/usr/bin/env python3
+# vim: set fileencoding=utf-8 :
 
-from src.data import info
+import collections
+import logging
+import re
+import string
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
+logger.info('Logging works')
+
+from bs4 import BeautifulSoup
+import pandas
+
+from room007.data import info
+
 
 def get_dataframes():
     data_info = info.RawData()
@@ -26,7 +36,7 @@ def stripTagsAndUris(x):
         # Returning text stripping out all uris
         return re.sub(uri_re, "", text)
     else:
-        return "" 
+        return ""
 
 def removePunctuation(x):
     # Lowercasing all words

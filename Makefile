@@ -16,6 +16,10 @@ IS_ANACONDA=$(shell python -c "import sys;t=str('anaconda' in sys.version.lower(
 ## Install Python Dependencies
 requirements: test_environment
 	pip install -r requirements.txt
+	pip install -e .
+
+make_test:
+	@echo $(shell pwd)
 
 ## Make Dataset
 data: requirements
