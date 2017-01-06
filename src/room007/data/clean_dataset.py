@@ -22,7 +22,7 @@ def get_dataframes():
                   }
     return dataframes
 
-def stripTagsAndUris(x):
+def strip_tags_and_uris(x):
     uri_re = r'(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:\'".,<>?«»“”‘’]))'
 
     if x:
@@ -38,7 +38,7 @@ def stripTagsAndUris(x):
     else:
         return ""
 
-def removePunctuation(x):
+def remove_punctuation(x):
     # Lowercasing all words
     x = x.lower()
     # Removing non ASCII chars
@@ -49,9 +49,9 @@ def removePunctuation(x):
 def clean_data(dataframes):
     # This could take a while
     for df in dataframes.values():
-        df["content"] = df["content"].map(stripTagsAndUris)
-        df["title"] = df["title"].map(removePunctuation)
-        df["content"] = df["content"].map(removePunctuation)
+        df["content"] = df["content"].map(strip_tags_and_uris)
+        df["title"] = df["title"].map(remove_punctuation)
+        df["content"] = df["content"].map(remove_punctuation)
         df["tags"] = df["tags"].map(lambda x: x.split())
 
 def save_data(data):
