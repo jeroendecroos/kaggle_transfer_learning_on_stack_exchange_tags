@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
+from os.path import dirname, join, realpath
 
-
-def project_dir():
-    return os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+PROJECT_DIR = dirname(dirname(dirname(dirname(realpath(__file__)))))
 
 
 class Data(object):
@@ -39,10 +38,10 @@ class Data(object):
 class RawData(Data):
     def __init__(self):
         super().__init__()
-        self.data_dir = os.path.join(project_dir(), 'data', 'raw')
+        self.data_dir = os.path.join(PROJECT_DIR, 'data', 'raw')
 
 
 class CleanedData(Data):
     def __init__(self):
         super().__init__()
-        self.data_dir = os.path.join(project_dir(), 'data', 'interim')
+        self.data_dir = os.path.join(PROJECT_DIR, 'data', 'interim')
