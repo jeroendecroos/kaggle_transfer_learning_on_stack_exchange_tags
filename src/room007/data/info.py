@@ -20,10 +20,12 @@ class Data(object):
         self.header = ['id', 'title', 'content', 'tags']
         self.data_dir = ''
 
+    @property
     def training_files(self):
         for f in self._iterate_files(self.training_sets):
             yield f
 
+    @property
     def test_files(self):
         for f in self._iterate_files(self.test_sets):
             yield f

@@ -16,11 +16,11 @@ import pandas
 from room007.data import info
 
 
-def get_dataframes():
-    data_info = info.RawData()
-    dataframes = {dataname: pandas.read_csv(filepath) for dataname, filepath in zip(data_info.training_sets, data_info.training_files())
+def get_dataframes(data_info):
+    dataframes = {dataname: pandas.read_csv(filepath) for dataname, filepath in zip(data_info.training_sets, data_info.training_files)
                   }
     return dataframes
+
 
 def stripTagsAndUris(x):
     uri_re = r'(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:\'".,<>?«»“”‘’]))'
@@ -38,6 +38,7 @@ def stripTagsAndUris(x):
     else:
         return ""
 
+
 def removePunctuation(x):
     # Lowercasing all words
     x = x.lower()
@@ -45,6 +46,7 @@ def removePunctuation(x):
     x = re.sub(r'[^\x00-\x7f]',r' ',x)
     # Removing (replacing with empty spaces actually) all the punctuations
     return re.sub("["+string.punctuation+"]", " ", x)
+
 
 def clean_data(dataframes):
     # This could take a while
@@ -54,16 +56,20 @@ def clean_data(dataframes):
         df["content"] = df["content"].map(removePunctuation)
         df["tags"] = df["tags"].map(lambda x: x.split())
 
+
 def save_data(data):
     data_info = info.CleanedData()
-    for data_set, data_filepath in zip(data_info.training_sets, data_info.training_files()):
+    for data_set, data_filepath in zip(data_info.training_sets, data_info.training_files):
         print(data_filepath)
         data[data_set].to_csv(data_filepath, index=False)
 
+
 def main():
-    data = get_dataframes()
+    data_info = info.RawData()
+    data = get_dataframes(data_info)
     clean_data(data)
     save_data(data)
+
 
 if __name__ == '__main__':
     main()
