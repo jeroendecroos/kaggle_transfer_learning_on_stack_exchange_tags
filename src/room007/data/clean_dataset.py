@@ -52,6 +52,8 @@ def remove_punctuation(x):
     # "don't" or "we'll" into non-words. We probably don't lose much important
     # information by doing this.
     return re.sub("[" + string.punctuation + "]", " ", x)
+    # TODO Normalize whitespace, e.g. newlines should be replaced with spaces
+    # and whitespace then squeezed.
 
 def clean_data(dataframes):
     # This could take a while
@@ -59,7 +61,10 @@ def clean_data(dataframes):
         df["content"] = df["content"].map(strip_tags_and_uris)
         df["title"] = df["title"].map(remove_punctuation)
         df["content"] = df["content"].map(remove_punctuation)
-        df["tags"] = df["tags"].map(lambda x: x.split())
+        # XXX Removed because this only results in storing what was
+        # a space-separated list using a Python list syntax, thereby requiring
+        # re-parsing it as Python on next load.
+        # df["tags"] = df["tags"].str.split()
 
 def save_data(data):
     data_info = info.CleanedData()
