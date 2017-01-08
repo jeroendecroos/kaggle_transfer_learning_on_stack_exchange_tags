@@ -81,3 +81,47 @@ if __name__ == "__main__":
     print('overall')
     print(overall_stats)
     print(overall_stats['present'] / overall_stats['total'])
+
+    # Prints:
+    #
+    # biology
+    # present     7444
+    # total      33129
+    # dtype: int64
+    # 0.224697395032
+    #
+    # cooking
+    # present    19960
+    # total      35542
+    # dtype: int64
+    # 0.561589105847
+    #
+    # crypto
+    # present    12615
+    # total      25484
+    # dtype: int64
+    # 0.495016480929
+    #
+    # diy
+    # present    31299
+    # total      59129
+    # dtype: int64
+    # 0.529334167667
+    #
+    # robotics
+    # present    3317
+    # total      6520
+    # dtype: int64
+    # 0.508742331288
+    #
+    # travel
+    # present    25906
+    # total      65334
+    # dtype: int64
+    # 0.396516362078
+    #
+    # overall
+    # present    100541
+    # total      225138
+    # dtype: int64
+    # 0.446574989562
