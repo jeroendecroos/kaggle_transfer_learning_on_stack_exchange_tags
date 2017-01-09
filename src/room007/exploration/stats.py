@@ -63,17 +63,11 @@ if __name__ == "__main__":
     overall_stats = pd.Series((0, 0),
                               index=TAG_STATS_IDX,
                               dtype='i4')
-    for relpath in ('data/interim/biology.csv',
-                    'data/interim/cooking.csv',
-                    'data/interim/crypto.csv',
-                    'data/interim/diy.csv',
-                    'data/interim/robotics.csv',
-                    'data/interim/travel.csv',
-                    ):
-        path = join(info.PROJECT_DIR, relpath)
-        fname = splitext(basename(path))[0]
+    data_info = info.CleanedData()
+    dataframes = info.get_train_dataframes(data_info)
+    for fname, data in dataframes.items():
         print(fname)
-        stats = frame_tag_stats(pd.read_csv(path))
+        stats = frame_tag_stats(data)
         overall_stats += stats
         print(stats)
         print(stats['present'] / stats['total'])
