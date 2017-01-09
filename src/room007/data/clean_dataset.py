@@ -18,11 +18,13 @@ from room007.data import info
 
 def get_dataframes():
     data_info = info.RawData()
-    dataframes = {dataname: pandas.read_csv(filepath) for dataname, filepath in zip(data_info.training_sets, data_info.training_files())
+    dataframes = {dataname: pandas.read_csv(filepath)
+                  for dataname, filepath in
+                  zip(data_info.training_sets, data_info.training_files())
                   }
     return dataframes
 
-def stripTagsAndUris(x):
+def strip_tags_and_uris(x):
     uri_re = r'(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:\'".,<>?«»“”‘’]))'
 
     if x:
@@ -38,21 +40,31 @@ def stripTagsAndUris(x):
     else:
         return ""
 
-def removePunctuation(x):
-    # Lowercasing all words
+def remove_punctuation(x):
+    # Lowercase all words.
     x = x.lower()
-    # Removing non ASCII chars
-    x = re.sub(r'[^\x00-\x7f]',r' ',x)
-    # Removing (replacing with empty spaces actually) all the punctuations
-    return re.sub("["+string.punctuation+"]", " ", x)
+    # Remove non ASCII chars.
+    # XXX There are better ways to normalize (e.g. nlu-norm's character map).
+    # By doing this, we lose words like "fiancèe".
+    x = re.sub(r'[^\x00-\x7f]', r' ', x)
+    # Remove (replace with empty spaces actually) all punctuation.
+    # XXX By doing this, we also discard apostrophes, transforming words like
+    # "don't" or "we'll" into non-words. We probably don't lose much important
+    # information by doing this.
+    return re.sub("[" + string.punctuation + "]", " ", x)
+    # TODO Normalize whitespace, e.g. newlines should be replaced with spaces
+    # and whitespace then squeezed.
 
 def clean_data(dataframes):
     # This could take a while
     for df in dataframes.values():
-        df["content"] = df["content"].map(stripTagsAndUris)
-        df["title"] = df["title"].map(removePunctuation)
-        df["content"] = df["content"].map(removePunctuation)
-        df["tags"] = df["tags"].map(lambda x: x.split())
+        df["content"] = df["content"].map(strip_tags_and_uris)
+        df["title"] = df["title"].map(remove_punctuation)
+        df["content"] = df["content"].map(remove_punctuation)
+        # XXX Removed because this only results in storing what was
+        # a space-separated list using a Python list syntax, thereby requiring
+        # re-parsing it as Python on next load.
+        # df["tags"] = df["tags"].str.split()
 
 def save_data(data):
     data_info = info.CleanedData()
