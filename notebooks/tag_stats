@@ -1,0 +1,83 @@
+robotics
+together
+present    157
+total      231
+dtype: int32
+0.679653679654
+seperate
+present    3317
+total      6520
+dtype: int64
+0.508742331288
+
+biology
+together
+present    448
+total      678
+dtype: int32
+0.660766961652
+seperate
+present     7444
+total      33129
+dtype: int64
+0.224697395032
+
+travel
+together
+present    1011
+total      1645
+dtype: int32
+0.614589665653
+seperate
+present    25906
+total      65334
+dtype: int64
+0.396516362078
+
+crypto
+together
+present    184
+total      392
+dtype: int32
+0.469387755102
+seperate
+present    12615
+total      25484
+dtype: int64
+0.495016480929
+
+cooking
+together
+present    550
+total      736
+dtype: int32
+0.747282608696
+seperate
+present    19960
+total      35542
+dtype: int64
+0.561589105847
+
+diy
+together
+present    525
+total      734
+dtype: int32
+0.715258855586
+seperate
+present    31299
+total      59129
+dtype: int64
+0.529334167667
+
+overall
+together
+present    2875
+total      4416
+dtype: int32
+0.651041666667
+seperate
+present    100541
+total      225138
+dtype: int64
+0.446574989562

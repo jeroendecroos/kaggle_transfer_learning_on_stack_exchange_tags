@@ -54,8 +54,17 @@ def rec_tag_stats(rec):
 
 def frame_tag_stats(frame):
     # TODO Do this splitting earlier.
-    frame['tags'] = frame['tags'].str.split()
     return frame.apply(rec_tag_stats, 1).sum()
+
+def tag_available(frame):
+    frame['scontent'] = frame['content'].str.split()
+    frame['stitle'] = frame['title'].str.split()
+    all_tags = set(chain(*frame['tags']))
+    all_words = chain(chain(*frame['stitle']), chain(*frame['scontent']))
+    all_words = set(all_words)
+    return pd.Series((len(all_tags & all_words), len(all_tags)),
+                     index=TAG_STATS_IDX,
+                     dtype='i4')
 
 
 
@@ -63,18 +72,32 @@ if __name__ == "__main__":
     overall_stats = pd.Series((0, 0),
                               index=TAG_STATS_IDX,
                               dtype='i4')
+    overall_stats2 = pd.Series((0, 0),
+                              index=TAG_STATS_IDX,
+                              dtype='i4')
     data_info = info.CleanedData()
     dataframes = info.get_train_dataframes(data_info)
     for fname, data in dataframes.items():
         print(fname)
-        stats = frame_tag_stats(data)
+        data['tags'] = data['tags'].str.split()
+        stats = tag_available(data)
+        stats2 = frame_tag_stats(data)
         overall_stats += stats
+        overall_stats2 += stats2
+        print('together')
         print(stats)
         print(stats['present'] / stats['total'])
+        print('seperate')
+        print(stats2)
+        print(stats2['present'] / stats2['total'])
         print('')
     print('overall')
+    print('together')
     print(overall_stats)
     print(overall_stats['present'] / overall_stats['total'])
+    print('seperate')
+    print(overall_stats2)
+    print(overall_stats2['present'] / overall_stats2['total'])
 
     # Prints:
     #
