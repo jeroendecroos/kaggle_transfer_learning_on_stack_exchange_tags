@@ -17,7 +17,8 @@ class Data(object):
                 ]
         self.test_sets = ['test']
         self.extension = '.csv'
-        self.header = ['id', 'title', 'content', 'tags']
+        self.features = ['id', 'title', 'content']
+        self.labels = ['tags']
         self.data_dir = ''
 
     @property
