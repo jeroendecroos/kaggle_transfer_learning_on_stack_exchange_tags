@@ -54,7 +54,7 @@ class CleanedData(Data):
 def get_train_dataframes(data_info):
     dataframes = {dataname: pandas.read_csv(filepath)
                   for dataname, filepath in
-                  zip(data_info.training_sets, data_info.training_files())
+                  zip(data_info.training_sets, data_info.training_files)
                   }
     return dataframes
 
