@@ -27,3 +27,5 @@ Indices and tables
 Useful links
 ============
 * preprocessing: https://www.kaggle.com/l3nnys/transfer-learning-on-stack-exchange-tags/useful-text-preprocessing-on-the-datasets
+* about tags on Stack Overflow: http://stackoverflow.com/help/tagging
+* all tags on Stack Overflow: http://stackapps.com/questions/2354/list-all-tags-in-use-on-stackoverflow

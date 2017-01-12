@@ -3,6 +3,7 @@ import os
 from os.path import dirname, join, realpath
 
 PROJECT_DIR = dirname(dirname(dirname(dirname(realpath(__file__)))))
+import pandas
 
 
 class Data(object):
@@ -34,17 +35,32 @@ class Data(object):
     def _iterate_files(self, data_sets):
         for filebase in data_sets:
             filename = filebase + self.extension
-            filepath = os.path.join(self.data_dir, filename)
+            filepath = join(self.data_dir, filename)
             yield filepath
 
 
 class RawData(Data):
     def __init__(self):
         super().__init__()
-        self.data_dir = os.path.join(PROJECT_DIR, 'data', 'raw')
+        self.data_dir = join(PROJECT_DIR, 'data', 'raw')
 
 
 class CleanedData(Data):
     def __init__(self):
         super().__init__()
-        self.data_dir = os.path.join(PROJECT_DIR, 'data', 'interim')
+        self.data_dir = join(PROJECT_DIR, 'data', 'interim')
+
+
+def get_train_dataframes(data_info):
+    dataframes = {dataname: pandas.read_csv(filepath)
+                  for dataname, filepath in
+                  zip(data_info.training_sets, data_info.training_files())
+                  }
+    return dataframes
+
+def save_training_data(data_info, data):
+    for data_set, data_filepath in zip(data_info.training_sets, data_info.training_files()):
+        print(data_filepath)
+        data[data_set].to_csv(data_filepath, index=False)
+
+
