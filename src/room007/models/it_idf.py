@@ -49,7 +49,8 @@ def predict_cross_category(dataframes):
     total_score = 0
     for fname, test_data in sorted(dataframes.items()):
         train_data = pandas.concat([data for name, data in dataframes.items() if name!=fname], ignore_index=True)
-        print('start learning for {} {}'.format(fname, len(test_data)))
+        train_data, throw_away = train_test_split(train_data, test_size=0.50)
+        print('start learning for {} {} {}'.format(fname, len(test_data), len(train_data)))
         score = learn_and_predict(train_data, test_data)
         print(score)
         total_score += score
@@ -97,7 +98,7 @@ def main():
         do_extra_cleaning(data)
 
     predict_cross_category(dataframes)
-    predict_per_category(dataframes)
+    #predict_per_category(dataframes)
 
 if __name__ == "__main__":
     main()
