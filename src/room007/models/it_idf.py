@@ -49,13 +49,24 @@ def predict_cross_category(dataframes):
     total_score = 0
     for fname, test_data in sorted(dataframes.items()):
         train_data = pandas.concat([data for name, data in dataframes.items() if name!=fname], ignore_index=True)
-        train_data, throw_away = train_test_split(train_data, test_size=0.50)
+       # train_data, throw_away = train_test_split(train_data, test_size=0.50)
         print('start learning for {} {} {}'.format(fname, len(test_data), len(train_data)))
         score = learn_and_predict(train_data, test_data)
         print(score)
         total_score += score
     avg_score = total_score/len(dataframes)
     print('total: {}'.format(avg_score))
+
+def predict_cross_category_save_result(dataframes, test_data):
+    total_score = 0
+    train_data = pandas.concat([data for name, data in dataframes.items()], ignore_index=True)
+    train_data, throw_away = train_test_split(train_data, test_size=0.99)
+    print('start learning for {} {} {}'.format('physics', len(test_data), len(train_data)))
+    score = learn_and_predict(train_data, test_data)
+    print(score)
+    #total_score += score
+    #avg_score = total_score/len(dataframes)
+    #print('total: {}'.format(avg_score))
 
 def learn_and_predict(train_data, test_data):
     vectorizer = get_vectorizer(train_data)
@@ -64,24 +75,27 @@ def learn_and_predict(train_data, test_data):
 
 def predict_on_test_data(vectorizer, test):
     feature_names = vectorizer.get_feature_names()
-    all_content = [x for x in test['titlecontent']]
-    all_tags  = [x for x in test['tags']]
+    all_content = [(i, x) for (x,i) in zip(test['titlecontent'], test['id'])]
+    #all_tags  = [x for x in test['tags']]
     score  = 0
-    for i, entry in enumerate(all_content):
+    f = open('test.out.csv', 'w')
+    f.write('"id","tags"\n')
+    for i, entry in all_content:
         test_features = vectorizer.transform([entry])
         entry = test_features.toarray()[0]
-        content = all_content[i]
-        number_of_tags = len(all_tags[i])
-        number_of_tags = 5
+     #   number_of_tags = len(all_tags[i])
+        number_of_tags = 2
         prediction = [feature_names[i] for i, score in sorted(enumerate(entry), key=lambda t: t[1] * -1)[:number_of_tags]]
-        diff_length =  len(prediction) - len(all_tags[i])
-        if diff_length > 0:
-            all_tags[i].extend(['']*diff_length)
-        if diff_length < 0:
-            prediction.extend(['']*(-1*diff_length))
-        fscore = f1_score(all_tags[i], prediction, average='macro')
-        score += fscore
-    return(score/len(all_tags)*100)
+        f.write('"{}","{}"\n'.format(i, ' '.join(prediction)))
+        #diff_length =  len(prediction) - len(all_tags[i])
+        #if diff_length > 0:
+        #    all_tags[i].extend(['']*diff_length)
+        #if diff_length < 0:
+        #    prediction.extend(['']*(-1*diff_length))
+        #fscore = f1_score(all_tags[i], prediction, average='macro')
+        #score += fscore
+    #return(score/len(all_tags)*100)
+    f.close()
 
 def remove_numbers(text):
     return re.sub('[0-9]', '', text)
@@ -96,8 +110,14 @@ def main():
         data['tags'] = data['tags'].str.split()
         data['titlecontent'] = data['title'] + data['content']
         do_extra_cleaning(data)
+    test_dataframes = info.get_test_dataframes(data_info)
+    for fname, data in sorted(test_dataframes.items()):
+        data['titlecontent'] = data['title'] + data['content']
+        do_extra_cleaning(data)
 
-    predict_cross_category(dataframes)
+    #predict_cross_category(dataframes)
+    predict_cross_category_save_result(dataframes, [x for x in test_dataframes.values()][0])
+
     #predict_per_category(dataframes)
 
 if __name__ == "__main__":

@@ -50,9 +50,9 @@ def remove_punctuation(x):
 def clean_data(dataframes):
     # This could take a while
     for df in dataframes.values():
-        df["content"] = df["content"].map(stripTagsAndUris)
-        df["title"] = df["title"].map(removePunctuation)
-        df["content"] = df["content"].map(removePunctuation)
+        df["content"] = df["content"].map(strip_tags_and_uris)
+        df["title"] = df["title"].map(remove_punctuation)
+        df["content"] = df["content"].map(remove_punctuation)
         # XXX Removed because this only results in storing what was
         # a space-separated list using a Python list syntax, thereby requiring
         # re-parsing it as Python on next load.
@@ -68,10 +68,14 @@ def save_data(data):
 
 def main():
     data_info = info.RawData()
-    data = info.get_train_dataframes(data_info)
+#    data = info.get_train_dataframes(data_info)
+#    clean_data(data)
+#    data_info = info.CleanedData()
+#    info.save_training_data(data_info, data)
+    data = info.get_test_dataframes(data_info)
     clean_data(data)
     data_info = info.CleanedData()
-    info.save_training_data(data_info, data)
+    info.save_test_data(data_info, data)
 
 
 if __name__ == '__main__':

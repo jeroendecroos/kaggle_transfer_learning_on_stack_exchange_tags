@@ -58,9 +58,22 @@ def get_train_dataframes(data_info):
                   }
     return dataframes
 
+def get_test_dataframes(data_info):
+    dataframes = {dataname: pandas.read_csv(filepath)
+                  for dataname, filepath in
+                  zip(data_info.test_sets, data_info.test_files)
+                  }
+    return dataframes
+
 def save_training_data(data_info, data):
-    for data_set, data_filepath in zip(data_info.training_sets, data_info.training_files()):
+    for data_set, data_filepath in zip(data_info.training_sets, data_info.training_files):
         print(data_filepath)
         data[data_set].to_csv(data_filepath, index=False)
+
+def save_test_data(data_info, data):
+    for data_set, data_filepath in zip(data_info.test_sets, data_info.test_files):
+        print(data_filepath)
+        data[data_set].to_csv(data_filepath, index=False)
+
 
 
