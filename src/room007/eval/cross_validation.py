@@ -35,7 +35,7 @@ def cross_validate(learner, dataframes):
     # Run the cross-validation rounds.
     # XXX Could be easily parallelized.
     for eval_name, eval_dataset in dataframes.items():
-        train_dataset = pd.concat(frame for name, frame in dataframes
+        train_dataset = pd.concat(frame for name, frame in dataframes.items()
                                   if name != eval_name)
         model = learner.fit(train_dataset)
         predictions[eval_name] = learner.predict(eval_dataset)
