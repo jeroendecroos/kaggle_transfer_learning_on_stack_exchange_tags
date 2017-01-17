@@ -67,7 +67,6 @@ def tag_available(frame):
                      dtype='i4')
 
 
-
 if __name__ == "__main__":
     overall_stats = pd.Series((0, 0),
                               index=TAG_STATS_IDX,
@@ -87,7 +86,7 @@ if __name__ == "__main__":
         print('together')
         print(stats)
         print(stats['present'] / stats['total'])
-        print('seperate')
+        print('separate')
         print(stats2)
         print(stats2['present'] / stats2['total'])
         print('')
@@ -95,7 +94,7 @@ if __name__ == "__main__":
     print('together')
     print(overall_stats)
     print(overall_stats['present'] / overall_stats['total'])
-    print('seperate')
+    print('separate')
     print(overall_stats2)
     print(overall_stats2['present'] / overall_stats2['total'])
 

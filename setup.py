@@ -14,7 +14,8 @@ setup(
     package_dir={'': 'src'},
     packages=find_packages('src'),
     # If there are any external dependencies, they can be specified as follows.
-    # install_requires=['Mako>=1.0.0',
+    install_requires=['scikit-learn==0.18.1',
+    #                   'Mako>=1.0.0',
     #                   'PyYAML==3.11',
     #                   'requests==2.11.1',
     #                   ],
