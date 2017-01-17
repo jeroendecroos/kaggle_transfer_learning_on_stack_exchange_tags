@@ -7,4 +7,5 @@ python-dotenv>=0.5.1
 kaggle-cli
 nose
 pandas
+scipy
 sklearn

@@ -68,10 +68,10 @@ def save_data(data):
 
 def main():
     data_info = info.RawData()
-#    data = info.get_train_dataframes(data_info)
-#    clean_data(data)
-#    data_info = info.CleanedData()
-#    info.save_training_data(data_info, data)
+    data = info.get_train_dataframes(data_info)
+    clean_data(data)
+    data_info = info.CleanedData()
+    info.save_training_data(data_info, data)
     data = info.get_test_dataframes(data_info)
     clean_data(data)
     data_info = info.CleanedData()
