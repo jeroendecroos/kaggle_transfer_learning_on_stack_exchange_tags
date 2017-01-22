@@ -14,7 +14,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.metrics import f1_score
-
+from sklearn.decomposition import NMF
 
 from room007.data import info
 
