@@ -96,7 +96,7 @@ def get_scoring(predictions, all_tags):
         fscore = f1_score(all_tags[i], prediction, average='macro')
         score += fscore
         j += 1
-    return(score/len(all_content)*100)
+    return(score/j*100)
 
 
 def main():
