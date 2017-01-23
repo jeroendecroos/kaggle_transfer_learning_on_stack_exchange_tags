@@ -6,6 +6,9 @@ import collections
 
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn import linear_model
+
+from pandas import DataFrame
 
 
 def remove_numbers(text):
@@ -28,12 +31,14 @@ class Predictor(object):
         self.functional_test = functional_test
         self.ti_idf_vectorizer = None
 
+
     def fit(self, train_data):
         print('start fitting')
         if self.functional_test:
             train_data, throw_away = train_test_split(train_data, test_size=0.9999)
         apply_preprocessing(train_data)
         self._fit(train_data)
+
 
     def predict(self, test_dataframe):
         print('start predicting')
@@ -44,12 +49,14 @@ class Predictor(object):
             ## TODO: probably be made faster by using panda tricks and mass transform iso one transform per entry
             times += 1
             number_of_tags = 3
-            if self.functional_test and times > 10:
+            if self.functional_test and times < 10:
                 prediction = self._predict_for_one_entry(entry)
             else:
+                break
                 prediction = []
             self._align_prediction(prediction, entry)
             predictions.append(prediction)
+        print(predictions)
         return predictions
 
 
@@ -57,8 +64,13 @@ class Predictor(object):
         self._train_ti_idf_vectorizer(train_data)
         features = self._get_features_per_word(train_data)
         truths = self._get_truths_per_word(train_data)
-        self._learn(features, truth)
+        self._learn(features, truths)
 
+    def _learn(self, features, truths):
+        self.logreg = linear_model.LogisticRegression(C=1e5)
+        # we create an instance of Neighbours Classifier and fit the data.
+        features = [ [f[i] for f in features.values()] for i in range(len(features['ti_idf']))]
+        self.logreg.fit(features, truths)
 
     def _train_ti_idf_vectorizer(self, train_data):
         self.ti_idf_vectorizer = TfidfVectorizer(stop_words='english')
@@ -84,15 +96,29 @@ class Predictor(object):
             features.extend(pf)
         return features
 
+    def _get_truths_per_word(self, train_data):
+        truths = []
+        for i, titlecontent in enumerate(train_data.titlecontent.values):
+            words = titlecontent.split()
+            tags = train_data.tags.values[i]
+            truths.extend(w in tags for w in words)
+        return truths
 
     def _predict_for_one_entry(self, entry):
         prediction = set()
-        for word in entry['titlecontent']:
-            features = self._get_features_for_word(word)
-            if self._predict_if_tag(word):
+        data = DataFrame.from_dict(entry)
+        features = self._get_features_per_word(data)
+        features = [ [f[i] for f in features.values()] for i in range(len(features['ti_idf']))]
+        predictions = self.logreg.predict(features)
+        words = data.titlecontent.values[0].split()
+        for pred, word in zip(predictions, words):
+            if pred:
                 prediction.add(word)
         return list(prediction)
 
+    def _predict_if_tag(features):
+        # we create an instance of Neighbours Classifier and fit the data.
+        features = [ [f[i] for f in features.values()] for i in range(len(features['ti_idf']))]
 
     def _align_prediction(self, prediction, entry):
         if 'tags' in entry:
