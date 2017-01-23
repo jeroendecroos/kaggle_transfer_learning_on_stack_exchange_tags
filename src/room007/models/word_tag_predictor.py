@@ -39,15 +39,28 @@ class Predictor(object):
 
 
     def _fit(self, train_data):
-        self.train_ti_idf_vectorizer(train_data)
-        features = get_features_per_word(train_data)
-        truths = get_truths_per_word(train_data)
-        self.learn(features, truth)
+        self._train_ti_idf_vectorizer(train_data)
+        features = self._get_features_per_word(train_data)
+        truths = self._get_truths_per_word(train_data)
+        self._learn(features, truth)
+
+    def _train_ti_idf_vectorizer(self, train_data):
+        self.ti_idf_vectorizer = TfidfVectorizer(stop_words='english')
+        train_features = self.ti_idf_vectorizer.fit(train_data['titlecontent'])
+
+    def _get_features_per_word(self, train_data):
+        import pdb; pdb.set_trace()
+        vec = self.ti_idf_vectorizer
+        features = self.ti_idf_vectorizer.transform(train_data['titlecontent'])
+        features2 = [self.ti_idf_vectorizer.transform([x]) for x in train_data.titlecontent.values[0].split()]
+
+
+
 
     def _predict_for_one_entry(self, entry):
         prediction = set()
         for word in entry['titlecontent']:
-            features = get_features_for_word(word)
+            features = self._get_features_for_word(word)
             if self._predict_if_tag(word):
                 prediction.add(word)
         return list(prediction)
