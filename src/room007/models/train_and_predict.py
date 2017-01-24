@@ -9,7 +9,7 @@ import pandas as pandas
 from sklearn.metrics import f1_score
 
 from room007.data import info
-
+from room007.eval import cross_validation
 
 
 class Predictor(object):
@@ -64,18 +64,29 @@ def apply_preprocessing(data):
     data['titlecontent'] = data['title'] + data['content']
     do_extra_cleaning(data)
 
+def sample_dataframes(dataframes):
+    new_dataframes = {}
+    for fname, data in sorted(dataframes.items()):
+        new_dataframes[fname] = data.sample(n=3)
+    return new_dataframes
 
 def main():
     args = get_arguments()
     data_info = info.CleanedData()
     train_dataframes = info.get_train_dataframes(data_info)
+    if args.test:
+        train_dataframes = sample_dataframes(train_dataframes)
+    print(train_dataframes)
     predictor_factory = importlib.import_module(args.model).Predictor
+    for fname, data in sorted(train_dataframes.items()):
+        apply_preprocessing(data)
     if args.eval:
         train_data = pandas.concat([data for name, data in train_dataframes.items()], ignore_index=True)
-        apply_preprocessing(train_data)
         predictor = predictor_factory(functional_test=args.eval)
         predictor.fit(train_data)
         test_dataframes = info.get_test_dataframes(data_info)
+        if args.test:
+            test_dataframes = sample_dataframes(test_dataframes)
         for fname, test_data in test_dataframes.items():
             print('start predicting for {} {} {}'.format(fname, len(test_data), len(train_data)))
             apply_preprocessing(test_data)
@@ -84,21 +95,8 @@ def main():
             test_data['tags'] = test_data['tags'].apply(' '.join)
             write_predictions(fname, test_data)
     else:
-        avg_score = 0
-        for fname, data in sorted(train_dataframes.items()):
-            apply_preprocessing(data)
-        for fname, test_data in sorted(train_dataframes.items()):
-
-            train_data = pandas.concat([data for name, data in train_dataframes.items() if name!=fname], ignore_index=True)
-            print('start learning for {} {} {}'.format(fname, len(test_data), len(train_data)))
-            predictor = predictor_factory(functional_test=args.test)
-            predictor.fit(train_data)
-            predictions = predictor.predict(test_data)
-            all_tags = test_data['tags']
-            score = get_scoring(predictions, all_tags)
-            avg_score += score
-            print(score)
-        print(avg_score/len(train_dataframes))
+        learner = predictor_factory(functional_test=args.test)
+        cross_validation.cross_validate(learner, train_dataframes)
 
 
 if __name__ == "__main__":

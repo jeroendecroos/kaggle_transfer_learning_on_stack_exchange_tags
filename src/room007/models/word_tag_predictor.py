@@ -77,22 +77,14 @@ class Predictor(object):
 
     def fit(self, train_data):
         print('start fitting')
-        if self.functional_test:
-            train_data, throw_away = train_test_split(train_data, test_size=0.9999)
         self._fit(train_data)
 
     def predict(self, test_dataframe):
         print('start predicting')
         predictions = []
-        times = 0
         for entry in test_dataframe.to_dict(orient='records'):
             ## TODO: probably be made faster by using panda tricks and mass transform iso one transform per entry
-            times += 1
-            if self.functional_test and times < 10:
-                prediction = self._predict_for_one_entry(entry)
-            else:
-                break
-                prediction = []
+            prediction = self._predict_for_one_entry(entry)
             self._align_prediction(prediction, entry)
             predictions.append(prediction)
         return predictions
