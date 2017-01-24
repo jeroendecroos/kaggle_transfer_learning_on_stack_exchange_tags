@@ -52,6 +52,7 @@ def get_scoring(predictions, all_tags):
         j += 1
     return(score/j*100)
 
+
 def remove_numbers(text):
     return re.sub('[0-9]', '', text)
 
@@ -61,13 +62,13 @@ def do_extra_cleaning(data):
 
 
 def apply_preprocessing(data):
-    data['titlecontent'] = data['title'] + data['content']
+    data['titlecontent'] = data['title'] + ' ' + data['content']
     do_extra_cleaning(data)
 
 def sample_dataframes(dataframes):
     new_dataframes = {}
     for fname, data in sorted(dataframes.items()):
-        new_dataframes[fname] = data.sample(n=3)
+        new_dataframes[fname] = data.sample(n=20)
     return new_dataframes
 
 def main():
@@ -76,7 +77,6 @@ def main():
     train_dataframes = info.get_train_dataframes(data_info)
     if args.test:
         train_dataframes = sample_dataframes(train_dataframes)
-    print(train_dataframes)
     predictor_factory = importlib.import_module(args.model).Predictor
     for fname, data in sorted(train_dataframes.items()):
         apply_preprocessing(data)

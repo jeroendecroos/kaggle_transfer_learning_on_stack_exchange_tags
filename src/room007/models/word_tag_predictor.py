@@ -2,6 +2,7 @@
 # vim: set fileencoding=utf-8 :
 
 import collections
+import itertools
 
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -13,45 +14,44 @@ from pandas import DataFrame
 class Features(object):
     def __init__(self, functional_test=False):
         self.functional_test = functional_test
-        self.ti_idf_vectorizer = None
+        self.tf_idf_vectorizer = None
 
     def fit(self, train_data):
-        self._train_ti_idf_vectorizer(train_data)
+        self._train_tf_idf_vectorizer(train_data)
 
     def transform(self, train_data):
         features = self._get_features_per_word(train_data)
-        features = [ [f[i] for f in features.values()] for i in range(len(features['ti_idf']))]
+        features = [ [f[i] for f in features.values()] for i in range(len(features['tf_idf']))]
         return features
 
-    def _train_ti_idf_vectorizer(self, train_data):
-        self.ti_idf_vectorizer = TfidfVectorizer(stop_words='english')
-        self.ti_idf_vectorizer.fit(train_data['titlecontent'])
+    def _train_tf_idf_vectorizer(self, train_data):
+        self.tf_idf_vectorizer = TfidfVectorizer(stop_words='english')
+        self.tf_idf_vectorizer.fit(train_data['titlecontent'])
         if self.functional_test:
             self._write_example_it_idf_features(train_data)
 
     def _get_features_per_word(self, train_data):
         features = collections.OrderedDict()
-        ti_idf = self._get_ti_idf_features_per_word(train_data)
-        features['ti_idf'] = ti_idf
+        tf_idf = self._get_tf_idf_features_per_word(train_data)
+        features['tf_idf'] = tf_idf
         self._write_some_features(features)
         return features
 
-    def _get_ti_idf_features_per_word(self, train_data):
-        ti_idf_data = self.ti_idf_vectorizer.transform(train_data['titlecontent'])
-        feature_names = self.ti_idf_vectorizer.get_feature_names()
-        features = []
-        for i, titlecontent in enumerate(train_data.titlecontent.values):
-            words = titlecontent.split()
-            ti_idf_values = ti_idf_data[i].toarray()[0]
-            pf = [ti_idf_values[feature_names.index(word)] if word in feature_names else 0 for word in words]
-            features.extend(pf)
+    def _get_tf_idf_features_per_word(self, train_data):
+        train_data['tf_idf_data'] = self.tf_idf_vectorizer.transform(train_data['titlecontent']).toarray().tolist()
+        feature_names = self.tf_idf_vectorizer.get_feature_names()
+        feature_names = {word: i for i, word in enumerate(feature_names)}
+        train_data['words'] = train_data['titlecontent'].str.split()
+        train_data['tf_idf_index'] = train_data['words'].apply(lambda words: [feature_names.get(x, None)  for x in words] )
+        #train_data['number_of_words'] = train_data['words'].apply(len)
+        train_data['tf_idf_values'] = train_data.apply(lambda row: [row['tf_idf_data'][index] if index is not None else 0 for index in row['tf_idf_index']], axis=1)
+        #itertools.chain(train_data['titlecontent'].str.split())
+        features = list(itertools.chain(*train_data['tf_idf_values']))
         return features
 
     def _write_example_it_idf_features(self, train_data):
-        words = train_data.titlecontent.values[0].split()
-        features_one = [self.ti_idf_vectorizer.transform([x]).toarray() for x in words]
-        features_two = self.ti_idf_vectorizer.transform([' '.join(words)]).toarray()
-        self.feature_names = self.ti_idf_vectorizer.get_feature_names()
+        features_two = self.tf_idf_vectorizer.transform([' '.join(words)]).toarray()
+        self.feature_names = self.tf_idf_vectorizer.get_feature_names()
         with open('debug_files/it_idf_feats_per_word', 'wt') as outstream:
             outstream.write(' '.join(train_data.tags.values[0]) + '\n')
             outstream.write(' '.join(words) + '\n')

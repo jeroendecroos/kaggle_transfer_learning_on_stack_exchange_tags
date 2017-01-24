@@ -9,3 +9,4 @@ nose
 pandas
 scipy
 sklearn
+pyprof2calltree
