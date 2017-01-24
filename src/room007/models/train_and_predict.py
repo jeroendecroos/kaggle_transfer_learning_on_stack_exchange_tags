@@ -68,7 +68,7 @@ def apply_preprocessing(data):
 def sample_dataframes(dataframes):
     new_dataframes = {}
     for fname, data in sorted(dataframes.items()):
-        new_dataframes[fname] = data.sample(n=20)
+        new_dataframes[fname] = data.sample(n=1000)
     return new_dataframes
 
 def main():
@@ -96,7 +96,8 @@ def main():
             write_predictions(fname, test_data)
     else:
         learner = predictor_factory(functional_test=args.test)
-        cross_validation.cross_validate(learner, train_dataframes)
+        result = cross_validation.cross_validate(learner, train_dataframes)
+        print(result)
 
 
 if __name__ == "__main__":

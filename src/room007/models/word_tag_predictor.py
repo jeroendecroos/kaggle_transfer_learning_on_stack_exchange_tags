@@ -27,6 +27,8 @@ class Features(object):
     def _train_tf_idf_vectorizer(self, train_data):
         self.tf_idf_vectorizer = TfidfVectorizer(stop_words='english')
         self.tf_idf_vectorizer.fit(train_data['titlecontent'])
+        feature_names = self.tf_idf_vectorizer.get_feature_names()
+        self.feature_names = {word: i for i, word in enumerate(feature_names)}
         if self.functional_test:
             self._write_example_it_idf_features(train_data)
 
@@ -34,19 +36,18 @@ class Features(object):
         features = collections.OrderedDict()
         tf_idf = self._get_tf_idf_features_per_word(train_data)
         features['tf_idf'] = tf_idf
-        self._write_some_features(features)
+        #self._write_some_features(features)
         return features
 
     def _get_tf_idf_features_per_word(self, train_data):
-        train_data['tf_idf_data'] = self.tf_idf_vectorizer.transform(train_data['titlecontent']).toarray().tolist()
-        feature_names = self.tf_idf_vectorizer.get_feature_names()
-        feature_names = {word: i for i, word in enumerate(feature_names)}
-        train_data['words'] = train_data['titlecontent'].str.split()
-        train_data['tf_idf_index'] = train_data['words'].apply(lambda words: [feature_names.get(x, None)  for x in words] )
-        #train_data['number_of_words'] = train_data['words'].apply(len)
-        train_data['tf_idf_values'] = train_data.apply(lambda row: [row['tf_idf_data'][index] if index is not None else 0 for index in row['tf_idf_index']], axis=1)
-        #itertools.chain(train_data['titlecontent'].str.split())
-        features = list(itertools.chain(*train_data['tf_idf_values']))
+        tf_idf_data = self.tf_idf_vectorizer.transform(train_data['titlecontent']).toarray()
+        train_data['index']= range(len(tf_idf_data))
+        voc = self.tf_idf_vectorizer.vocabulary_
+        features = list(itertools.chain(*train_data.apply(
+                lambda row: [tf_idf_data[row['index']][voc.get(word)]
+                             if voc.get(word) else 0
+                             for word in row['titlecontent'].split()], axis=1)
+                ))
         return features
 
     def _write_example_it_idf_features(self, train_data):
@@ -67,7 +68,7 @@ class Features(object):
     def _write_some_features(self, features):
         with open('debug_files/feats_per_word', 'wt') as outstream:
             outstream.write(','.join(features.keys()))
-            for i in range(10):
+            for i in range(2):
                 outstream.write(','.join(str(f[i]) for f in features.values()) + '\n')
 
 
