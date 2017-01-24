@@ -92,7 +92,7 @@ class Predictor(object):
         self._learn(features, truths)
 
     def _learn(self, features, truths):
-        self.logreg = linear_model.LogisticRegression(C=1e5)
+        self.logreg = linear_model.LogisticRegression(C=1e5, class_weight='balanced')
         self.logreg.fit(features, truths)
 
     def _get_truths_per_word(self, train_data):

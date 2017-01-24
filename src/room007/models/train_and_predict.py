@@ -53,11 +53,12 @@ def apply_preprocessing(data):
 def sample_dataframes(dataframes, size):
     new_dataframes = {}
     for fname, data in sorted(dataframes.items()):
-        new_dataframes[fname] = data.sample(n=size)
+        new_dataframes[fname] = data.sample(frac=size)
     return new_dataframes
 
 def _get_sample_size(speed):
-    return 100 if speed else 10
+    #return 2000 if speed else 10
+    return 1/3 if speed else 0.001
 
 def main():
     args = get_arguments()
