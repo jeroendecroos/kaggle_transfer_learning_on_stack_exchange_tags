@@ -31,6 +31,7 @@ def strip_tags_and_uris(x):
     else:
         return ""
 
+
 def remove_punctuation(x):
     # Lowercase all words.
     x = x.lower()
@@ -53,10 +54,7 @@ def clean_data(dataframes):
         df["content"] = df["content"].map(strip_tags_and_uris)
         df["title"] = df["title"].map(remove_punctuation)
         df["content"] = df["content"].map(remove_punctuation)
-        # XXX Removed because this only results in storing what was
-        # a space-separated list using a Python list syntax, thereby requiring
-        # re-parsing it as Python on next load.
-        # df["tags"] = df["tags"].str.split()
+
 
 
 def save_data(data):
@@ -68,7 +66,10 @@ def save_data(data):
 
 def main():
     data_info = info.RawData()
-    data = info.get_train_dataframes(data_info)
+    # XXX Do not split tags because this would only result in storing what was
+    # a space-separated list using a Python list syntax, thereby requiring
+    # re-parsing it as Python on next load.
+    data = info.get_train_dataframes(data_info, split_tags=False)
     clean_data(data)
     data_info = info.CleanedData()
     info.save_training_data(data_info, data)
@@ -76,6 +77,7 @@ def main():
     clean_data(data)
     data_info = info.CleanedData()
     info.save_test_data(data_info, data)
+
 
 
 if __name__ == '__main__':

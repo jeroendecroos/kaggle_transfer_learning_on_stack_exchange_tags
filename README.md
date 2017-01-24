@@ -64,6 +64,8 @@ Project Organization
     │   │   ├── predict_model.py
     │   │   └── train_model.py
     │   │
+    │   ├── eval           <- Evaluation scripts
+    │   │
     │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
     │       └── visualize.py
     │
