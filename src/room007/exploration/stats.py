@@ -78,7 +78,6 @@ if __name__ == "__main__":
     dataframes = info.get_train_dataframes(data_info)
     for fname, data in dataframes.items():
         print(fname)
-        data['tags'] = data['tags'].str.split()
         stats = tag_available(data)
         stats2 = frame_tag_stats(data)
         overall_stats += stats

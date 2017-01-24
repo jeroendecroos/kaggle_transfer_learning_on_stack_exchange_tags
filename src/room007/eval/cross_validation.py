@@ -1,25 +1,28 @@
 #!/usr/bin/env python3
 # vim: set fileencoding=utf-8 :
 
-from collections import Counter, namedtuple
-from functools import partial
-from itertools import chain
-from os.path import basename, join, splitext
-import re
+from functools import reduce
+from itertools import islice
 
 import numpy as np
 import pandas as pd
 from sklearn.metrics import f1_score
+from sklearn.preprocessing import MultiLabelBinarizer
 
 from room007.data import info
 
 
 def evaluate(expected, predicted):
-    # TODO Separate the tags into lists or so...
-    return f1_score(expected, predicted, average='weighted')
+    all_tags = (reduce(set.union, expected, set()) |
+                reduce(set.union, predicted, set()))
+    coder = MultiLabelBinarizer()
+    coder.fit([all_tags])
+    return f1_score(coder.transform(expected),
+                    coder.transform(predicted),
+                    average='weighted')
 
 
-def cross_validate(learner, dataframes):
+def cross_validate(learner, frames):
     """Runs the provided learner (compliant to the Scikit protocol, fitting to
     a dataset using the fit(ds) method and predicting for a dataset using the
     predict(ds) method) on all sets of training data except for one, in sequel
@@ -34,16 +37,34 @@ def cross_validate(learner, dataframes):
     predictions = dict()
     # Run the cross-validation rounds.
     # XXX Could be easily parallelized.
-    for eval_name, eval_dataset in dataframes.items():
-        train_dataset = pd.concat(frame for name, frame in dataframes.items()
+    for eval_name, eval_dataset in frames.items():
+        train_dataset = pd.concat(frame for name, frame in frames.items()
                                   if name != eval_name)
-        model = learner.fit(train_dataset)
+        learner.fit(train_dataset)
         predictions[eval_name] = learner.predict(eval_dataset)
     # Compute the scores.
-    return np.mean(evaluate(dataframes[name]['tags'], preds)
-                   for name, preds in predictions.items())),
+    weights, scores = zip(*((len(frames[name]),
+                             evaluate(frames[name]['tags'], preds))
+                            for name, preds in predictions.items()))
+    return np.average(scores, 0, weights)
+
+
+def test_oracle():
+    data_info = info.CleanedData()
+    dataframes = dict(
+        islice(info.get_train_dataframes(data_info).items(), 0, 3))
+
+    class Oracle(object):
+        def fit(self, dataset):
+            pass
+
+        def predict(self, dataset):
+            return dataset['tags']
+
+    score = cross_validate(Oracle(), dataframes)
+    print(score)
+    assert score == 1.0
 
 
 if __name__ == "__main__":
-    data_info = info.CleanedData()
-    dataframes = info.get_train_dataframes(data_info)
+    test_oracle()

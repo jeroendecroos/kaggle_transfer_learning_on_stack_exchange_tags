@@ -31,6 +31,7 @@ def strip_tags_and_uris(x):
     else:
         return ""
 
+
 def remove_punctuation(x):
     # Lowercase all words.
     x = x.lower()
@@ -46,23 +47,25 @@ def remove_punctuation(x):
     # TODO Normalize whitespace, e.g. newlines should be replaced with spaces
     # and whitespace then squeezed.
 
+
 def clean_data(dataframes):
     # This could take a while
     for df in dataframes.values():
         df["content"] = df["content"].map(strip_tags_and_uris)
         df["title"] = df["title"].map(remove_punctuation)
         df["content"] = df["content"].map(remove_punctuation)
-        # XXX Removed because this only results in storing what was
-        # a space-separated list using a Python list syntax, thereby requiring
-        # re-parsing it as Python on next load.
-        # df["tags"] = df["tags"].str.split()
+
 
 def main():
     data_info = info.RawData()
-    data = info.get_train_dataframes(data_info)
+    # XXX Do not split tags because this would only result in storing what was
+    # a space-separated list using a Python list syntax, thereby requiring
+    # re-parsing it as Python on next load.
+    data = info.get_train_dataframes(data_info, split_tags=False)
     clean_data(data)
     data_info = info.CleanedData()
     info.save_training_data(data_info, data)
+
 
 if __name__ == '__main__':
     main()
