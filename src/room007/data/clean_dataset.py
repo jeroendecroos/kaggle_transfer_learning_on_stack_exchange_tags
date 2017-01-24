@@ -56,6 +56,14 @@ def clean_data(dataframes):
         df["content"] = df["content"].map(remove_punctuation)
 
 
+
+def save_data(data):
+    data_info = info.CleanedData()
+    for data_set, data_filepath in zip(data_info.training_sets, data_info.training_files):
+        print(data_filepath)
+        data[data_set].to_csv(data_filepath, index=False)
+
+
 def main():
     data_info = info.RawData()
     # XXX Do not split tags because this would only result in storing what was
@@ -65,6 +73,11 @@ def main():
     clean_data(data)
     data_info = info.CleanedData()
     info.save_training_data(data_info, data)
+    data = info.get_test_dataframes(data_info)
+    clean_data(data)
+    data_info = info.CleanedData()
+    info.save_test_data(data_info, data)
+
 
 
 if __name__ == '__main__':
