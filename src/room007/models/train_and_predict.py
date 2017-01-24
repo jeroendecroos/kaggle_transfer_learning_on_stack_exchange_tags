@@ -39,21 +39,6 @@ def write_predictions(test_name, test_dataframe):
     test_dataframe.to_csv(filename, columns=['id','tags'], index=False)
 
 
-def get_scoring(predictions, all_tags):
-    score = 0
-    j = 0
-    for i, prediction in enumerate(predictions):
-        diff_length = len(prediction) - len(all_tags[i])
-        if diff_length > 0:
-            all_tags[i].extend(['']*diff_length)
-        if diff_length < 0:
-            prediction.extend(['']*(-1*diff_length))
-        fscore = f1_score(all_tags[i], prediction, average='macro')
-        score += fscore
-        j += 1
-    return(score/j*100)
-
-
 def remove_numbers(text):
     return re.sub('[0-9]', '', text)
 
@@ -71,12 +56,15 @@ def sample_dataframes(dataframes, size):
         new_dataframes[fname] = data.sample(n=size)
     return new_dataframes
 
+def _get_sample_size(speed):
+    return 100 if speed else 10
+
 def main():
     args = get_arguments()
     data_info = info.CleanedData()
     train_dataframes = info.get_train_dataframes(data_info)
     if args.test or args.speedtest:
-        size = 10 if args.test else 1000
+        size = _get_sample_size(args.speedtest)
         train_dataframes = sample_dataframes(train_dataframes, size)
     predictor_factory = importlib.import_module(args.model).Predictor
     for fname, data in sorted(train_dataframes.items()):
@@ -87,7 +75,7 @@ def main():
         predictor.fit(train_data)
         test_dataframes = info.get_test_dataframes(data_info)
         if args.test or args.speedtest:
-            size = 10 if args.test else 1000
+            size = _get_sample_size(args.speedtest)
             test_dataframes = sample_dataframes(test_dataframes, size)
         for fname, test_data in test_dataframes.items():
             print('start predicting for {} {} {}'.format(fname, len(test_data), len(train_data)))

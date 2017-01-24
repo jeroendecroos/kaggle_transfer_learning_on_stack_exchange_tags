@@ -20,24 +20,15 @@ class Features(object):
         self._train_tf_idf_vectorizer(train_data)
 
     def transform(self, train_data):
-        features = self._get_features_per_word(train_data)
-        features = [ [f[i] for f in features.values()] for i in range(len(features['tf_idf']))]
-        return features
+        features = self._get_tf_idf_features_per_word(train_data)
+        return [[x] for x in features]
 
     def _train_tf_idf_vectorizer(self, train_data):
         self.tf_idf_vectorizer = TfidfVectorizer(stop_words='english')
         self.tf_idf_vectorizer.fit(train_data['titlecontent'])
-        feature_names = self.tf_idf_vectorizer.get_feature_names()
-        self.feature_names = {word: i for i, word in enumerate(feature_names)}
-        if self.functional_test:
-            self._write_example_it_idf_features(train_data)
+        #if self.functional_test:
+        #    self._write_example_it_idf_features(train_data)
 
-    def _get_features_per_word(self, train_data):
-        features = collections.OrderedDict()
-        tf_idf = self._get_tf_idf_features_per_word(train_data)
-        features['tf_idf'] = tf_idf
-        #self._write_some_features(features)
-        return features
 
     def _get_tf_idf_features_per_word(self, train_data):
         tf_idf_data = self.tf_idf_vectorizer.transform(train_data['titlecontent']).toarray()
@@ -92,10 +83,12 @@ class Predictor(object):
 
 
     def _fit(self, train_data):
+        print("get features")
         self.feature_creator = Features()
         self.feature_creator.fit(train_data)
         features = self.feature_creator.transform(train_data)
         truths = self._get_truths_per_word(train_data)
+        print("learning")
         self._learn(features, truths)
 
     def _learn(self, features, truths):
