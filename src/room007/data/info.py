@@ -78,10 +78,8 @@ def save_training_data(data_info, data):
         print(data_filepath)
         data[data_set].to_csv(data_filepath, index=False)
 
+
 def save_test_data(data_info, data):
     for data_set, data_filepath in zip(data_info.test_sets, data_info.test_files):
         print(data_filepath)
         data[data_set].to_csv(data_filepath, index=False)
-
-
-
