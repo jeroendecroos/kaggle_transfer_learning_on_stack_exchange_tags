@@ -51,8 +51,15 @@ class CleanedData(Data):
         self.data_dir = join(PROJECT_DIR, 'data', 'interim')
 
 
-def get_train_dataframes(data_info):
-    dataframes = {dataname: pandas.read_csv(filepath)
+def load_dataset(filepath, split_tags=True):
+    frame = pandas.read_csv(filepath)
+    if split_tags:
+        frame['tags'] = frame['tags'].str.split()
+    return frame
+
+
+def get_train_dataframes(data_info, split_tags=True):
+    dataframes = {dataname: load_dataset(filepath, split_tags)
                   for dataname, filepath in
                   zip(data_info.training_sets, data_info.training_files)
                   }
@@ -64,6 +71,7 @@ def get_test_dataframes(data_info):
                   zip(data_info.test_sets, data_info.test_files)
                   }
     return dataframes
+
 
 def save_training_data(data_info, data):
     for data_set, data_filepath in zip(data_info.training_sets, data_info.training_files):
