@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # vim: set fileencoding=utf-8 :
 
-import re
 import collections
 
 from sklearn.model_selection import train_test_split
@@ -11,19 +10,6 @@ from sklearn import linear_model
 from pandas import DataFrame
 
 
-def remove_numbers(text):
-    return re.sub('[0-9]', '', text)
-
-
-def do_extra_cleaning(data):
-    data['titlecontent'] = data['titlecontent'].map(remove_numbers)
-
-
-def apply_preprocessing(data):
-    if 'tags' in data:
-        data['tags'] = data['tags'].str.split()
-    data['titlecontent'] = data['title'] + data['content']
-    do_extra_cleaning(data)
 
 
 class Predictor(object):
@@ -36,19 +22,16 @@ class Predictor(object):
         print('start fitting')
         if self.functional_test:
             train_data, throw_away = train_test_split(train_data, test_size=0.9999)
-        apply_preprocessing(train_data)
         self._fit(train_data)
 
 
     def predict(self, test_dataframe):
         print('start predicting')
-        apply_preprocessing(test_dataframe)
         predictions = []
         times = 0
         for entry in test_dataframe.to_dict(orient='records'):
             ## TODO: probably be made faster by using panda tricks and mass transform iso one transform per entry
             times += 1
-            number_of_tags = 3
             if self.functional_test and times < 10:
                 prediction = self._predict_for_one_entry(entry)
             else:
@@ -56,7 +39,6 @@ class Predictor(object):
                 prediction = []
             self._align_prediction(prediction, entry)
             predictions.append(prediction)
-        print(predictions)
         return predictions
 
 

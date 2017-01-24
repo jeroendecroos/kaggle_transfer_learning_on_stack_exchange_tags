@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # vim: set fileencoding=utf-8 :
 
+import re
 import argparse
 import importlib
 
@@ -51,6 +52,21 @@ def get_scoring(predictions, all_tags):
         j += 1
     return(score/j*100)
 
+def remove_numbers(text):
+    return re.sub('[0-9]', '', text)
+
+
+def do_extra_cleaning(data):
+    data['titlecontent'] = data['titlecontent'].map(remove_numbers)
+
+
+def apply_preprocessing(data):
+    if 'tags' in data:
+        data['tags'] = data['tags'].str.split()
+    data['titlecontent'] = data['title'] + data['content']
+    do_extra_cleaning(data)
+
+
 def main():
     args = get_arguments()
     data_info = info.CleanedData()
@@ -58,17 +74,21 @@ def main():
     predictor_factory = importlib.import_module(args.model).Predictor
     if args.eval:
         train_data = pandas.concat([data for name, data in train_dataframes.items()], ignore_index=True)
+        apply_preprocessing(train_data)
         predictor = predictor_factory(functional_test=args.eval)
         predictor.fit(train_data)
         test_dataframes = info.get_test_dataframes(data_info)
         for fname, test_data in test_dataframes.items():
             print('start predicting for {} {} {}'.format(fname, len(test_data), len(train_data)))
+            apply_preprocessing(test_data)
             predictions = predictor.predict(test_data)
             test_data['tags'] = predictions
             test_data['tags'] = test_data['tags'].apply(' '.join)
             write_predictions(fname, test_data)
     else:
         avg_score = 0
+        for fname, data in sorted(train_dataframes.items()):
+            apply_preprocessing(data)
         for fname, test_data in sorted(train_dataframes.items()):
 
             train_data = pandas.concat([data for name, data in train_dataframes.items() if name!=fname], ignore_index=True)
