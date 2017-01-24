@@ -28,6 +28,7 @@ def get_arguments():
     parser = argparse.ArgumentParser(description='Predict with it-idf.')
     parser.add_argument('--eval', help='apply to the testdata', action='store_true')
     parser.add_argument('--test', help='run only on minimal part of data, to test functionality', action='store_true')
+    parser.add_argument('--speedtest', help='run only on small part of data, but big enough for speed profiling', action='store_true')
     parser.add_argument('--model', help='the name of the model to train and test, should be an importable module containing a Predictor class')
     args = parser.parse_args()
     return args
@@ -56,7 +57,6 @@ def get_scoring(predictions, all_tags):
 def remove_numbers(text):
     return re.sub('[0-9]', '', text)
 
-
 def do_extra_cleaning(data):
     data['titlecontent'] = data['titlecontent'].map(remove_numbers)
 
@@ -65,18 +65,19 @@ def apply_preprocessing(data):
     data['titlecontent'] = data['title'] + ' ' + data['content']
     do_extra_cleaning(data)
 
-def sample_dataframes(dataframes):
+def sample_dataframes(dataframes, size):
     new_dataframes = {}
     for fname, data in sorted(dataframes.items()):
-        new_dataframes[fname] = data.sample(n=1000)
+        new_dataframes[fname] = data.sample(n=size)
     return new_dataframes
 
 def main():
     args = get_arguments()
     data_info = info.CleanedData()
     train_dataframes = info.get_train_dataframes(data_info)
-    if args.test:
-        train_dataframes = sample_dataframes(train_dataframes)
+    if args.test or args.speedtest:
+        size = 10 if args.test else 1000
+        train_dataframes = sample_dataframes(train_dataframes, size)
     predictor_factory = importlib.import_module(args.model).Predictor
     for fname, data in sorted(train_dataframes.items()):
         apply_preprocessing(data)
@@ -85,8 +86,9 @@ def main():
         predictor = predictor_factory(functional_test=args.eval)
         predictor.fit(train_data)
         test_dataframes = info.get_test_dataframes(data_info)
-        if args.test:
-            test_dataframes = sample_dataframes(test_dataframes)
+        if args.test or args.speedtest:
+            size = 10 if args.test else 1000
+            test_dataframes = sample_dataframes(test_dataframes, size)
         for fname, test_data in test_dataframes.items():
             print('start predicting for {} {} {}'.format(fname, len(test_data), len(train_data)))
             apply_preprocessing(test_data)
