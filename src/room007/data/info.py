@@ -18,13 +18,16 @@ class Data(object):
                 ]
         self.test_sets = ['test']
         self.extension = '.csv'
-        self.header = ['id', 'title', 'content', 'tags']
+        self.features = ['id', 'title', 'content']
+        self.labels = ['tags']
         self.data_dir = ''
 
+    @property
     def training_files(self):
         for f in self._iterate_files(self.training_sets):
             yield f
 
+    @property
     def test_files(self):
         for f in self._iterate_files(self.test_sets):
             yield f
@@ -58,12 +61,25 @@ def load_dataset(filepath, split_tags=True):
 def get_train_dataframes(data_info, split_tags=True):
     dataframes = {dataname: load_dataset(filepath, split_tags)
                   for dataname, filepath in
-                  zip(data_info.training_sets, data_info.training_files())
+                  zip(data_info.training_sets, data_info.training_files)
+                  }
+    return dataframes
+
+def get_test_dataframes(data_info):
+    dataframes = {dataname: pandas.read_csv(filepath)
+                  for dataname, filepath in
+                  zip(data_info.test_sets, data_info.test_files)
                   }
     return dataframes
 
 
 def save_training_data(data_info, data):
-    for data_set, data_filepath in zip(data_info.training_sets, data_info.training_files()):
+    for data_set, data_filepath in zip(data_info.training_sets, data_info.training_files):
+        print(data_filepath)
+        data[data_set].to_csv(data_filepath, index=False)
+
+
+def save_test_data(data_info, data):
+    for data_set, data_filepath in zip(data_info.test_sets, data_info.test_files):
         print(data_filepath)
         data[data_set].to_csv(data_filepath, index=False)
