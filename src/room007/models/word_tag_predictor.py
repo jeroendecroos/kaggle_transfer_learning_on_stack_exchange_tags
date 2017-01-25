@@ -31,14 +31,15 @@ class Features(object):
 
 
     def _get_tf_idf_features_per_word(self, train_data):
-        tf_idf_data = self.tf_idf_vectorizer.transform(train_data['titlecontent']).toarray()
-        train_data['index']= range(len(tf_idf_data))
+        tf_idf_data = self.tf_idf_vectorizer.transform(train_data['titlecontent'])
+        train_data['index'] = range(tf_idf_data.shape[0])
         voc = self.tf_idf_vectorizer.vocabulary_
+        transformer = self.tf_idf_vectorizer.transform
         features = list(itertools.chain(*train_data.apply(
-                lambda row: [tf_idf_data[row['index']][voc.get(word)]
-                             if voc.get(word) else 0
-                             for word in row['titlecontent'].split()], axis=1)
-                ))
+            lambda row: [tf_idf_data[0,voc.get(word)]
+                         if voc.get(word) else 0
+                         for word in row['titlecontent'].split()], axis=1)
+            ))
         return features
 
     def _write_example_it_idf_features(self, train_data):
@@ -74,8 +75,8 @@ class Predictor(object):
     def predict(self, test_dataframe):
         print('start predicting')
         predictions = []
-        for entry in test_dataframe.to_dict(orient='records'):
-            ## TODO: probably be made faster by using panda tricks and mass transform iso one transform per entry
+        for i in range(len(test_dataframe)):
+            entry = test_dataframe[i:i+1]
             prediction = self._predict_for_one_entry(entry)
             self._align_prediction(prediction, entry)
             predictions.append(prediction)
@@ -90,6 +91,7 @@ class Predictor(object):
         truths = self._get_truths_per_word(train_data)
         print("learning")
         self._learn(features, truths)
+        print("finished learning")
 
     def _learn(self, features, truths):
         self.logreg = linear_model.LogisticRegression(C=1e5, class_weight='balanced')
@@ -104,21 +106,21 @@ class Predictor(object):
         return truths
 
     def _predict_for_one_entry(self, entry):
-        prediction = set()
-        data = DataFrame.from_dict(entry)
-        features = self.feature_creator.transform(data)
-        predictions = self.logreg.predict(features)
-        words = data.titlecontent.values[0].split()
-        for pred, word in zip(predictions, words):
+        features = self.feature_creator.transform(entry)
+        tag_predictions = self.logreg.predict(features)
+        words = entry.titlecontent.values[0].split()
+        predictions = set()
+        for pred, word in zip(tag_predictions, words):
             if pred:
-                prediction.add(word)
-        return list(prediction)
+                predictions.add(word)
+        return list(predictions)
 
     def _align_prediction(self, prediction, entry):
         if 'tags' in entry:
-            diff_length = len(prediction) - len(entry['tags'])
+            ground_truth = entry.iloc[0]['tags']
+            diff_length = len(prediction) - len(ground_truth)
             if diff_length > 0:
-                entry['tags'].extend(['']*diff_length)
+                ground_truth.extend(['']*diff_length)
             if diff_length < 0:
                 prediction.extend(['']*(-1*diff_length))
 

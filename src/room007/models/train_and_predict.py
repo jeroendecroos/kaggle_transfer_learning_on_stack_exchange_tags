@@ -58,7 +58,7 @@ def sample_dataframes(dataframes, size):
 
 def _get_sample_size(speed):
     #return 2000 if speed else 10
-    return 1/3 if speed else 0.001
+    return 0.10 if speed else 0.001
 
 def main():
     args = get_arguments()
@@ -75,9 +75,9 @@ def main():
         predictor = predictor_factory(functional_test=args.eval)
         predictor.fit(train_data)
         test_dataframes = info.get_test_dataframes(data_info)
-        if args.test or args.speedtest:
-            size = _get_sample_size(args.speedtest)
-            test_dataframes = sample_dataframes(test_dataframes, size)
+#        if args.test or args.speedtest:
+#            size = _get_sample_size(args.speedtest)
+#            test_dataframes = sample_dataframes(test_dataframes, size)
         for fname, test_data in test_dataframes.items():
             print('start predicting for {} {} {}'.format(fname, len(test_data), len(train_data)))
             apply_preprocessing(test_data)
