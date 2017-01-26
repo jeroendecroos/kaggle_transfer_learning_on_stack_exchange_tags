@@ -42,6 +42,7 @@ class Features(object):
             ))
         return features
 
+
     def _write_example_it_idf_features(self, train_data):
         features_two = self.tf_idf_vectorizer.transform([' '.join(words)]).toarray()
         self.feature_names = self.tf_idf_vectorizer.get_feature_names()
@@ -75,13 +76,25 @@ class Predictor(object):
     def predict(self, test_dataframe):
         print('start predicting')
         predictions = []
+        tag_predictions = self.logreg.predict(
+                self.feature_creator.transform(test_dataframe)
+                )
+        line = 0
+        size = len(test_dataframe)
         for i in range(len(test_dataframe)):
+            if i % 100 == 0:
+                print(i/size*100)
             entry = test_dataframe[i:i+1]
-            prediction = self._predict_for_one_entry(entry)
+            words = entry.titlecontent.values[0].split()
+            n_words = len(words)
+            tag_predictions[line:line+n_words]
+            prediction = set()
+            for pred, word in zip(tag_predictions[line:line+n_words], words):
+                if pred:
+                    prediction.add(word)
             self._align_prediction(prediction, entry)
             predictions.append(prediction)
         return predictions
-
 
     def _fit(self, train_data):
         print("get features")
