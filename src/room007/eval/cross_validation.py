@@ -19,7 +19,7 @@ def evaluate(expected, predicted):
     coder.fit([all_tags])
     return f1_score(coder.transform(expected),
                     coder.transform(predicted),
-                    average='weighted')
+                    average='macro')
 
 
 def cross_validate(learner, frames):
