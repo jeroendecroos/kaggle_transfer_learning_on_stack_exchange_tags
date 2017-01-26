@@ -31,6 +31,11 @@ def strip_tags_and_uris(x):
     else:
         return ""
 
+def strip_latex_code(text):
+    #if 'lecturer poses the question' in text:
+    #    import pdb; pdb.set_trace()
+    return re.sub(r'\\[a-zA-Z/\-_0-9{}]{2,}', '', 
+                re.sub(r'(\$)?\$.*?\$(\$)?','', text))
 
 def remove_punctuation(x):
     # Lowercase all words.
@@ -51,6 +56,7 @@ def remove_punctuation(x):
 def clean_data(dataframes):
     # This could take a while
     for df in dataframes.values():
+        df["content"] = df["content"].map(strip_latex_code)
         df["content"] = df["content"].map(strip_tags_and_uris)
         df["title"] = df["title"].map(remove_punctuation)
         df["content"] = df["content"].map(remove_punctuation)
