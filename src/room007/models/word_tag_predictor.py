@@ -11,7 +11,8 @@ from sklearn import linear_model
 
 from pandas import DataFrame
 import nltk
-stop_words = nltk.corpus.stopwords.words('english')
+import string
+stop_words = nltk.corpus.stopwords.words('english') + [x for x in string.printable]
 
 
 class Features(object):
@@ -27,7 +28,7 @@ class Features(object):
         in_title_features = self._times_word_in('title', train_data)
         in_content_feature = self._times_word_in('content', train_data)
         feats = tuple(zip(tf_idf_features, in_title_features, in_content_feature))
-#        feats = tuple(zip(tf_idf_features))
+        feats = tuple(zip(tf_idf_features))
         return feats
 
     def _times_word_in(self, column, data):
@@ -49,9 +50,8 @@ class Features(object):
         tf_idf_data = self.tf_idf_vectorizer.transform(train_data['titlecontent'])
         train_data['index'] = range(tf_idf_data.shape[0])
         voc = self.tf_idf_vectorizer.vocabulary_
-        transformer = self.tf_idf_vectorizer.transform
         features = list(itertools.chain(*train_data.apply(
-            lambda row: [tf_idf_data[0,voc.get(word)]
+            lambda row: [tf_idf_data[row['index'], voc.get(word)]
                          if voc.get(word) else 0
                          for word in row['titlecontent'].split()
                          if word not in stop_words], axis=1)
