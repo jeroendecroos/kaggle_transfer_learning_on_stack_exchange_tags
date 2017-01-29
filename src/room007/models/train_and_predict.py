@@ -4,12 +4,41 @@
 import re
 import argparse
 import importlib
+import time
 
 import pandas as pandas
 from sklearn.metrics import f1_score
 
 from room007.data import info
 from room007.eval import cross_validation
+
+from sklearn.neural_network import MLPClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.gaussian_process import GaussianProcessClassifier
+from sklearn.gaussian_process.kernels import RBF
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.linear_model import LogisticRegression
+
+names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", #"Gaussian Process",
+         "Decision Tree", "Random Forest", "Neural Net", "AdaBoost",
+         "Naive Bayes", "Logistic Regression", "QDA"]
+
+classifiers = [    ## would be better to add the names to this
+    KNeighborsClassifier(3),
+    SVC(kernel="linear", C=0.025),
+    SVC(gamma=2, C=1),
+    # GaussianProcessClassifier(1.0 * RBF(1.0), warm_start=True), # too slow?
+    DecisionTreeClassifier(max_depth=5),
+    RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
+    MLPClassifier(alpha=1),
+    AdaBoostClassifier(),
+    GaussianNB(),
+    LogisticRegression(class_weight='balanced'),
+    QuadraticDiscriminantAnalysis()]
 
 
 class Predictor(object):
@@ -60,7 +89,7 @@ def sample_dataframes(dataframes, size):
 
 def _get_sample_size(test):
     #return 2000 if speed else 10
-    return 0.001 if test else 0.01
+    return 0.001 if test else 0.1
 
 def main():
     args = get_arguments()
@@ -88,9 +117,20 @@ def main():
             test_data['tags'] = test_data['tags'].apply(' '.join)
             write_predictions(fname, test_data)
     else:
-        learner = predictor_factory(functional_test=args.test)
-        result = cross_validation.cross_validate(learner, train_dataframes)
-        print(result)
+        results = []
+        for name, classifier in zip(names, classifiers):
+            t0 = time.time()
+            print('started learning for {}'.format(name))
+            learner = predictor_factory(functional_test=args.test, classifier=classifier)
+            result = cross_validation.cross_validate(learner, train_dataframes)
+            t1 = time.time()
+            time_needed = t1-t0
+            print("{} {} {}".format(result, name, time_needed))
+            results.append((name, result, time_needed))
+        print('############################################"')
+        for name, result, time_needed in sorted(results, key=lambda x: x[1]*-1):
+            print("{} {} {}".format(result, name, time_needed))
+
 
 
 if __name__ == "__main__":

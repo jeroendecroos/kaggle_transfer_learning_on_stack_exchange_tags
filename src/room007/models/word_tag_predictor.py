@@ -2,8 +2,8 @@
 # vim: set fileencoding=utf-8 :
 
 import collections
-import itertools
 
+import itertools
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn import naive_bayes
@@ -27,9 +27,19 @@ class Features(object):
         tf_idf_features = self._get_tf_idf_features_per_word(train_data)
         in_title_features = self._times_word_in('title', train_data)
         in_content_feature = self._times_word_in('content', train_data)
+        #in_question_feature = self._is_in_question(train_data)
         feats = tuple(zip(tf_idf_features, in_title_features, in_content_feature))
         feats = tuple(zip(tf_idf_features))
         return feats
+
+    def _is_in_question(self, train_data):
+        features = list(itertools.chain(*train_data.apply(
+            lambda row: [tf_idf_data[row['index'], voc.get(word)]
+                         if voc.get(word) else 0
+                         for word in row['titlecontent'].split()
+                         if word not in stop_words], axis=1)
+            ))
+
 
     def _times_word_in(self, column, data):
         return list(itertools.chain(*data.apply(
@@ -67,7 +77,10 @@ class Features(object):
 
 
 class Predictor(object):
-    def __init__(self, functional_test=False):
+    def __init__(self, functional_test=False, classifier=None):
+        if classifier == None:
+            classifier = linear_model.LogisticRegression(class_weight='balanced')
+        self.classifier = classifier
         self.functional_test = functional_test
 
     def fit(self, train_data):
@@ -77,7 +90,7 @@ class Predictor(object):
     def predict(self, test_dataframe):
         print('start predicting')
         predictions = []
-        tag_predictions = self.logreg.predict(
+        tag_predictions = self.classifier.predict(
                 self.feature_creator.transform(test_dataframe)
                 )
         line = 0
@@ -106,8 +119,7 @@ class Predictor(object):
         print("finished learning")
 
     def _learn(self, features, truths):
-        self.logreg = linear_model.LogisticRegression(class_weight='balanced')
-        self.logreg.fit(features, truths)
+        self.classifier.fit(features, truths)
 
     def _get_truths_per_word(self, train_data):
         truths = []
@@ -119,7 +131,7 @@ class Predictor(object):
 
     def _predict_for_one_entry(self, entry):
         features = self.feature_creator.transform(entry)
-        tag_predictions = self.logreg.predict(features)
+        tag_predictions = self.classifier.predict(features)
         words = [w for w in entry.titlecontent.values[0].split() if w not in stop_words]
         predictions = set()
         for pred, word in zip(tag_predictions, words):
