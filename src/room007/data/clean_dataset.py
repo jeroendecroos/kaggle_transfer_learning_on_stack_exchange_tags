@@ -16,18 +16,17 @@ from room007.data import info
 
 
 def strip_tags_and_uris(x):
-    uri_re = r'(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:\'".,<>?«»“”‘’]))'
-
     if x:
+        cleantext = BeautifulSoup(x, "html.parser").text
         # BeautifulSoup on content
-        soup = BeautifulSoup(x, "html.parser")
+        #soup = BeautifulSoup(x, "html.parser")
         # Stripping all <code> tags with their content if any
-        if soup.code:
-            soup.code.decompose()
+        #if soup.code:
+        #    soup.code.decompose()
         # Get all the text out of the html
-        text =  soup.get_text()
+        #text =  soup.get_text()
         # Returning text stripping out all uris
-        return re.sub(uri_re, "", text)
+        return cleantext #re.sub(uri_re, "", text)
     else:
         return ""
 
@@ -40,15 +39,16 @@ def strip_latex_code(text):
 def remove_punctuation(x):
     # Lowercase all words.
     x = x.lower()
+    x = ' '.join(re.findall(r"\w+|[^\w\s]", x, re.UNICODE))
     # Remove non ASCII chars.
     # XXX There are better ways to normalize (e.g. nlu-norm's character map).
     # By doing this, we lose words like "fiancèe".
-    x = re.sub(r'[^\x00-\x7f]', r' ', x)
+    #x = re.sub(r'[^\x00-\x7f]', r' ', x)
     # Remove (replace with empty spaces actually) all punctuation.
     # XXX By doing this, we also discard apostrophes, transforming words like
     # "don't" or "we'll" into non-words. We probably don't lose much important
     # information by doing this.
-    return re.sub("[" + string.punctuation + "]", " ", x)
+    return x 
     # TODO Normalize whitespace, e.g. newlines should be replaced with spaces
     # and whitespace then squeezed.
 
@@ -56,10 +56,11 @@ def remove_punctuation(x):
 def clean_data(dataframes):
     # This could take a while
     for df in dataframes.values():
-        df["content"] = df["content"].map(strip_latex_code)
         df["content"] = df["content"].map(strip_tags_and_uris)
-        df["title"] = df["title"].map(remove_punctuation)
-        df["content"] = df["content"].map(remove_punctuation)
+        df["content"] = df["content"].map(strip_latex_code)
+# We can also keep punctuation because it can give NLP information
+#        df["title"] = df["title"].map(remove_punctuation)
+#        df["content"] = df["content"].map(remove_punctuation)
 
 
 
