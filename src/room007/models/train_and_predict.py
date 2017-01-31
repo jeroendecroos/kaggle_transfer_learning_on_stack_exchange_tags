@@ -93,7 +93,7 @@ def _get_sample_size(test):
 
 
 def _get_train_test_data(args):
-    def _select_and_process(data, reduce_data):
+    def _select_and_process(dataframes, reduce_data):
         if args.test or args.speedtest or reduce_data:
             size = _get_sample_size(args.test)
             dataframes = sample_dataframes(dataframes, size)
