@@ -25,12 +25,12 @@ from sklearn.linear_model import LogisticRegression
 
 classifiers = {    ## would be better to add the names to this
     "Nearest Neighbors": KNeighborsClassifier(3),
-    "Linear SVM": SVC(kernel="linear", C=0.025),
-    "RBF SVM": SVC(gamma=2, C=1),
+#    "Linear SVM": SVC(kernel="linear", C=0.025),
+#    "RBF SVM": SVC(gamma=2, C=1),
     #"Gaussian Process":  GaussianProcessClassifier(1.0 * RBF(1.0), warm_start=True), # too slow?
     "Decision Tree": DecisionTreeClassifier(max_depth=5),
     "Random Forest": RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
-    "Neural Net": MLPClassifier(alpha=1),
+#    "Neural Net": MLPClassifier(alpha=1),
     "AdaBoost": AdaBoostClassifier(),
     "Naive Bayes": GaussianNB(),
     "Logistic Regression": LogisticRegression(class_weight='balanced'),
@@ -89,7 +89,7 @@ def sample_dataframes(dataframes, size):
 
 def _get_sample_size(test):
     #return 2000 if speed else 10
-    return 0.001 if test else 0.1
+    return 0.001 if test else 0.01
 
 
 def _get_train_test_data(args):
@@ -125,6 +125,9 @@ def main():
             write_predictions(fname, test_data)
     else:
         results = []
+        if args.classifier:
+            global classifiers
+            classifiers = {args.classifier: classifiers[args.classifier]}
         for name, classifier in classifiers.items():
             t0 = time.time()
             print('started learning for {}'.format(name))
@@ -134,6 +137,16 @@ def main():
             time_needed = t1-t0
             print("{} {} {}".format(result, name, time_needed))
             results.append((name, result, time_needed))
+            if True: ##changes
+                t0 = time.time()
+                name = name+' changes'
+                print('started learning for {}'.format(name))
+                learner = predictor_factory(functional_test=args.test, classifier=classifier, changes=True)
+                result = cross_validation.cross_validate(learner, train_dataframes)
+                t1 = time.time()
+                time_needed = t1-t0
+                print("{} {} {}".format(result, name, time_needed))
+                results.append((name, result, time_needed))
         print('############################################"')
         for name, result, time_needed in sorted(results, key=lambda x: x[1]*-1):
             print("{} {} {}".format(result, name, time_needed))

@@ -16,9 +16,10 @@ stop_words = nltk.corpus.stopwords.words('english') + [x for x in string.printab
 
 
 class Features(object):
-    def __init__(self, functional_test=False):
+    def __init__(self, functional_test=False, changes=False):
         self.functional_test = functional_test
         self.tf_idf_vectorizer = None
+        self.changes=changes
 
     def fit(self, train_data):
         self._train_tf_idf_vectorizer(train_data)
@@ -27,19 +28,31 @@ class Features(object):
         tf_idf_features = self._get_tf_idf_features_per_word(train_data)
         in_title_features = self._times_word_in('title', train_data)
         in_content_feature = self._times_word_in('content', train_data)
-        #in_question_feature = self._is_in_question(train_data)
-        feats = tuple(zip(tf_idf_features, in_title_features, in_content_feature))
-        feats = tuple(zip(tf_idf_features))
+        if self.changes:
+            in_question_feature = self._is_in_question(train_data)
+            feats = tuple(zip(tf_idf_features, in_title_features, in_content_feature, in_question_feature))
+        else:
+            feats = tuple(zip(tf_idf_features, in_title_features, in_content_feature))
         return feats
 
     def _is_in_question(self, train_data):
-        features = list(itertools.chain(*train_data.apply(
-            lambda row: [tf_idf_data[row['index'], voc.get(word)]
-                         if voc.get(word) else 0
-                         for word in row['titlecontent'].split()
-                         if word not in stop_words], axis=1)
-            ))
+        def is_in_question(row):
+            features = []
+            question = 0
+            for word in row.split()[::-1]:
+                if word in '.:;!?':
+                    question = int(word == '?')
+                if word not in stop_words:
+                    features.append(question)
+            import pdb; pdb.set_trace()
+            return features[::-1]
+        return list(itertools.chain(*train_data['titlecontent'].apply(
+            is_in_question
+            )))
 
+    def _add_number_of_non_stop_words(self, data):
+        data['title_non_stop_words'] = [x for x in row['title'] if x not in stop_words]
+        data['content_non_stop_words'] = [x for x in row['content'] if x not in stop_words]
 
     def _times_word_in(self, column, data):
         return list(itertools.chain(*data.apply(
@@ -77,11 +90,12 @@ class Features(object):
 
 
 class Predictor(object):
-    def __init__(self, functional_test=False, classifier=None):
+    def __init__(self, functional_test=False, classifier=None, changes=False):
         if classifier == None:
             classifier = linear_model.LogisticRegression(class_weight='balanced')
         self.classifier = classifier
         self.functional_test = functional_test
+        self.changes = changes
 
     def fit(self, train_data):
         print('start fitting')
@@ -110,7 +124,7 @@ class Predictor(object):
 
     def _fit(self, train_data):
         print("get features")
-        self.feature_creator = Features()
+        self.feature_creator = Features(changes=self.changes)
         self.feature_creator.fit(train_data)
         features = self.feature_creator.transform(train_data)
         truths = self._get_truths_per_word(train_data)
