@@ -23,22 +23,19 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.linear_model import LogisticRegression
 
-names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", #"Gaussian Process",
-         "Decision Tree", "Random Forest", "Neural Net", "AdaBoost",
-         "Naive Bayes", "Logistic Regression", "QDA"]
-
-classifiers = [    ## would be better to add the names to this
-    KNeighborsClassifier(3),
-    SVC(kernel="linear", C=0.025),
-    SVC(gamma=2, C=1),
-    # GaussianProcessClassifier(1.0 * RBF(1.0), warm_start=True), # too slow?
-    DecisionTreeClassifier(max_depth=5),
-    RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
-    MLPClassifier(alpha=1),
-    AdaBoostClassifier(),
-    GaussianNB(),
-    LogisticRegression(class_weight='balanced'),
-    QuadraticDiscriminantAnalysis()]
+classifiers = {    ## would be better to add the names to this
+    "Nearest Neighbors": KNeighborsClassifier(3),
+    "Linear SVM": SVC(kernel="linear", C=0.025),
+    "RBF SVM": SVC(gamma=2, C=1),
+    #"Gaussian Process":  GaussianProcessClassifier(1.0 * RBF(1.0), warm_start=True), # too slow?
+    "Decision Tree": DecisionTreeClassifier(max_depth=5),
+    "Random Forest": RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
+    "Neural Net": MLPClassifier(alpha=1),
+    "AdaBoost": AdaBoostClassifier(),
+    "Naive Bayes": GaussianNB(),
+    "Logistic Regression": LogisticRegression(class_weight='balanced'),
+    "QDA": QuadraticDiscriminantAnalysis()
+}
 
 
 class Predictor(object):
@@ -60,6 +57,7 @@ def get_arguments():
     parser.add_argument('--speedtest', help='run only on small part of data, but big enough for speed profiling', action='store_true')
     parser.add_argument('--reduce-train-data', help='run with same amount of train data as speedteest, but full testset', action='store_true')
     parser.add_argument('--model', help='the name of the model to train and test, should be an importable module containing a Predictor class')
+    parser.add_argument('--classifier', help='what classifier the Predictor class uses')
     args = parser.parse_args()
     return args
 
@@ -81,44 +79,53 @@ def apply_preprocessing(data):
     data['titlecontent'] = data['title'] + ' ' + data['content']
     do_extra_cleaning(data)
 
+
 def sample_dataframes(dataframes, size):
     new_dataframes = {}
     for fname, data in sorted(dataframes.items()):
         new_dataframes[fname] = data.sample(frac=size)
     return new_dataframes
 
+
 def _get_sample_size(test):
     #return 2000 if speed else 10
     return 0.001 if test else 0.1
 
+
+def _get_train_test_data(args):
+    def _select_and_process(data, reduce_data):
+        if args.test or args.speedtest or reduce_data:
+            size = _get_sample_size(args.test)
+            dataframes = sample_dataframes(dataframes, size)
+        for _, data in sorted(dataframes.items()):
+            apply_preprocessing(data)
+        return dataframes
+    data_info = info.CleanedData()
+    train_dataframes = _select_and_process(info.get_train_dataframes(data_info), True)
+    if args.eval:
+        test_dataframes = _select_and_process(info.get_test_dataframes(data_info), False)
+    else:
+        test_dataframes = {}
+    return train_dataframes, test_dataframes
+
 def main():
     args = get_arguments()
-    data_info = info.CleanedData()
-    train_dataframes = info.get_train_dataframes(data_info)
-    if args.test or args.speedtest or args.reduce_train_data:
-        size = _get_sample_size(args.test)
-        train_dataframes = sample_dataframes(train_dataframes, size)
+    train_dataframes, test_dataframes = _get_train_test_data(args)
     predictor_factory = importlib.import_module(args.model).Predictor
-    for fname, data in sorted(train_dataframes.items()):
-        apply_preprocessing(data)
     if args.eval:
         train_data = pandas.concat([data for name, data in train_dataframes.items()], ignore_index=True)
-        predictor = predictor_factory(functional_test=args.eval)
+        classifier = getattr('classifier', args, "Logistic Regression")
+        predictor = predictor_factory(functional_test=args.eval, classifier=classifier)
         predictor.fit(train_data)
-        test_dataframes = info.get_test_dataframes(data_info)
-        if args.test or args.speedtest:
-            size = _get_sample_size(args.test)
-            test_dataframes = sample_dataframes(test_dataframes, size)
         for fname, test_data in test_dataframes.items():
             print('start predicting for {} {} {}'.format(fname, len(test_data), len(train_data)))
-            apply_preprocessing(test_data)
             predictions = predictor.predict(test_data)
             test_data['tags'] = predictions
             test_data['tags'] = test_data['tags'].apply(' '.join)
             write_predictions(fname, test_data)
     else:
         results = []
-        for name, classifier in zip(names, classifiers):
+        for name, classifier in classifiers.items():
             t0 = time.time()
             print('started learning for {}'.format(name))
             learner = predictor_factory(functional_test=args.test, classifier=classifier)
