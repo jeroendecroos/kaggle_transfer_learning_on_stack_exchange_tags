@@ -13,6 +13,7 @@ logger.info('Logging works')
 from bs4 import BeautifulSoup
 
 from room007.data import info
+import nltk
 
 
 def strip_tags_and_uris(x):
@@ -39,7 +40,9 @@ def strip_latex_code(text):
 def remove_punctuation(x):
     # Lowercase all words.
     x = x.lower()
-    x = ' '.join(re.findall(r"\w+|[^\w\s]", x, re.UNICODE))
+    x = ' '.join(nltk.word_tokenize(x))
+    ## find all words and important punctiation
+    # x = ' '.join(re.findall(r"\w+|[^\w\s]", x, re.UNICODE))
     # Remove non ASCII chars.
     # XXX There are better ways to normalize (e.g. nlu-norm's character map).
     # By doing this, we lose words like "fiancèe".
@@ -55,12 +58,13 @@ def remove_punctuation(x):
 
 def clean_data(dataframes):
     # This could take a while
-    for df in dataframes.values():
+    for name, df in dataframes.items():
+        print(name)
         df["content"] = df["content"].map(strip_tags_and_uris)
         df["content"] = df["content"].map(strip_latex_code)
 # We can also keep punctuation because it can give NLP information
-#        df["title"] = df["title"].map(remove_punctuation)
-#        df["content"] = df["content"].map(remove_punctuation)
+        df["title"] = df["title"].map(remove_punctuation)
+        df["content"] = df["content"].map(remove_punctuation)
 
 
 
