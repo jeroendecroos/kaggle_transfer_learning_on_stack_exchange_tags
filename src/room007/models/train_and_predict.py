@@ -73,6 +73,8 @@ def remove_numbers(text):
 
 def do_extra_cleaning(data):
     data['titlecontent'] = data['titlecontent'].map(remove_numbers)
+    data['title'] = data['title'].map(remove_numbers)
+    data['content'] = data['content'].map(remove_numbers)
 
 
 def apply_preprocessing(data):
