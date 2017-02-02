@@ -67,15 +67,16 @@ def save_data(data):
 
 
 def main():
-    data_info = info.RawData()
-    data = info.get_train_dataframes(data_info)
+    raw_info = info.RawData()
+    cleaned_info = info.CleanedData()
+
+    data = info.get_train_dataframes(raw_info)
     clean_data(data)
-    data_info = info.CleanedData()
-    info.save_training_data(data_info, data)
-    data = info.get_test_dataframes(data_info)
+    info.save_training_data(cleaned_info, data)
+
+    data = info.get_test_dataframes(raw_info)
     clean_data(data)
-    data_info = info.CleanedData()
-    info.save_test_data(data_info, data)
+    info.save_test_data(cleaned_info, data)
 
 
 if __name__ == '__main__':

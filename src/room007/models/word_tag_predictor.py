@@ -19,7 +19,7 @@ def do_extra_cleaning(data):
 def apply_preprocessing(data):
     if 'tags' in data:
         data['tags'] = data['tags'].str.split()
-    data['titlecontent'] = data['title'] + data['content']
+    data['titlecontent'] = data['title'] + ' ' + data['content']
     do_extra_cleaning(data)
 
 
