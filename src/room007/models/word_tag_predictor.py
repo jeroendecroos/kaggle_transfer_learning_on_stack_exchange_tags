@@ -1,127 +1,155 @@
 #!/usr/bin/env python3
 # vim: set fileencoding=utf-8 :
 
-import re
 import collections
 
+import itertools
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn import naive_bayes
+from sklearn import linear_model
+
+from pandas import DataFrame
+import nltk
+import string
+stop_words = nltk.corpus.stopwords.words('english') + [x for x in string.printable]
 
 
-def remove_numbers(text):
-    return re.sub('[0-9]', '', text)
+class Features(object):
+    def __init__(self, functional_test=False, changes=False):
+        self.functional_test = functional_test
+        self.tf_idf_vectorizer = None
+        self.changes=changes
+
+    def fit(self, train_data):
+        self._train_tf_idf_vectorizer(train_data)
+
+    def transform(self, train_data):
+        tf_idf_features = self._get_tf_idf_features_per_word(train_data)
+        in_title_features = self._times_word_in('title', train_data)
+        in_content_feature = self._times_word_in('content', train_data)
+        if self.changes:
+            in_question_feature = self._is_in_question(train_data)
+            feats = tuple(zip(tf_idf_features, in_title_features, in_content_feature, in_question_feature))
+        else:
+            feats = tuple(zip(tf_idf_features, in_title_features, in_content_feature))
+        return feats
+
+    def _is_in_question(self, train_data):
+        def is_in_question(row):
+            features = []
+            question = 0
+            for word in row.split()[::-1]:
+                if word in '.:;!?':
+                    question = int(word == '?')
+                if word not in stop_words:
+                    features.append(question)
+            import pdb; pdb.set_trace()
+            return features[::-1]
+        return list(itertools.chain(*train_data['titlecontent'].apply(
+            is_in_question
+            )))
+
+    def _add_number_of_non_stop_words(self, data):
+        data['title_non_stop_words'] = [x for x in row['title'] if x not in stop_words]
+        data['content_non_stop_words'] = [x for x in row['content'] if x not in stop_words]
+
+    def _times_word_in(self, column, data):
+        return list(itertools.chain(*data.apply(
+            lambda row: [row[column].split().count(word)
+                         for word in row['titlecontent'].split()
+                         if word not in stop_words], axis=1)
+            ))
 
 
-def do_extra_cleaning(data):
-    data['titlecontent'] = data['titlecontent'].map(remove_numbers)
+    def _train_tf_idf_vectorizer(self, train_data):
+        self.tf_idf_vectorizer = TfidfVectorizer(stop_words=stop_words)
+        self.tf_idf_vectorizer.fit(train_data['titlecontent'])
+        #if self.functional_test:
+        #    self._write_example_it_idf_features(train_data)
 
 
-def apply_preprocessing(data):
-    if 'tags' in data:
-        data['tags'] = data['tags'].str.split()
-    data['titlecontent'] = data['title'] + ' ' + data['content']
-    do_extra_cleaning(data)
+    def _get_tf_idf_features_per_word(self, train_data):
+        tf_idf_data = self.tf_idf_vectorizer.transform(train_data['titlecontent'])
+        train_data['index'] = range(tf_idf_data.shape[0])
+        voc = self.tf_idf_vectorizer.vocabulary_
+        features = list(itertools.chain(*train_data.apply(
+            lambda row: [tf_idf_data[row['index'], voc.get(word)]
+                         if voc.get(word) else 0
+                         for word in row['titlecontent'].split()
+                         if word not in stop_words], axis=1)
+            ))
+        return features
+
+
+    def _write_some_features(self, features, keys):
+        with open('debug_files/feats_per_word', 'wt') as outstream:
+            outstream.write(','.join(keys))
+            for feat in features:
+                outstream.write(','.join(f for f in feat) + '\n')
 
 
 class Predictor(object):
-    def __init__(self, functional_test=False):
+    def __init__(self, functional_test=False, classifier=None, changes=False):
+        if classifier == None:
+            classifier = linear_model.LogisticRegression(class_weight='balanced')
+        self.classifier = classifier
         self.functional_test = functional_test
-        self.ti_idf_vectorizer = None
+        self.changes = changes
 
     def fit(self, train_data):
         print('start fitting')
-        if self.functional_test:
-            train_data, throw_away = train_test_split(train_data, test_size=0.9999)
-        apply_preprocessing(train_data)
         self._fit(train_data)
 
     def predict(self, test_dataframe):
         print('start predicting')
-        apply_preprocessing(test_dataframe)
         predictions = []
-        times = 0
-        for entry in test_dataframe.to_dict(orient='records'):
-            ## TODO: probably be made faster by using panda tricks and mass transform iso one transform per entry
-            times += 1
-            number_of_tags = 3
-            if self.functional_test and times > 10:
-                prediction = self._predict_for_one_entry(entry)
-            else:
-                prediction = []
-            self._align_prediction(prediction, entry)
+        tag_predictions = self.classifier.predict(
+                self.feature_creator.transform(test_dataframe)
+                )
+        line = 0
+        for i in range(len(test_dataframe)):
+            entry = test_dataframe[i:i+1]
+            words = [w for w in entry.titlecontent.values[0].split() if w not in stop_words]
+            n_words = len(words)
+            tag_predictions[line:line+n_words]
+            line += n_words
+            prediction = set()
+            for pred, word in zip(tag_predictions[line:line+n_words], words):
+                if pred:
+                    prediction.add(word)
+            prediction = list(prediction)
             predictions.append(prediction)
         return predictions
 
-
     def _fit(self, train_data):
-        self._train_ti_idf_vectorizer(train_data)
-        features = self._get_features_per_word(train_data)
+        print("get features")
+        self.feature_creator = Features(changes=self.changes)
+        self.feature_creator.fit(train_data)
+        features = self.feature_creator.transform(train_data)
         truths = self._get_truths_per_word(train_data)
-        self._learn(features, truth)
+        print("learning")
+        self._learn(features, truths)
+        print("finished learning")
 
+    def _learn(self, features, truths):
+        self.classifier.fit(features, truths)
 
-    def _train_ti_idf_vectorizer(self, train_data):
-        self.ti_idf_vectorizer = TfidfVectorizer(stop_words='english')
-        self.ti_idf_vectorizer.fit(train_data['titlecontent'])
-        if self.functional_test:
-            self._write_example_it_idf_features(train_data)
-
-    def _get_features_per_word(self, train_data):
-        features = collections.OrderedDict()
-        ti_idf = self._get_ti_idf_features_per_word(train_data)
-        features['ti_idf'] = ti_idf
-        self._write_some_features(features)
-        return features
-
-    def _get_ti_idf_features_per_word(self, train_data):
-        ti_idf_data = self.ti_idf_vectorizer.transform(train_data['titlecontent'])
-        feature_names = self.ti_idf_vectorizer.get_feature_names()
-        features = []
+    def _get_truths_per_word(self, train_data):
+        truths = []
         for i, titlecontent in enumerate(train_data.titlecontent.values):
-            words = titlecontent.split()
-            ti_idf_values = ti_idf_data[i].toarray()[0]
-            pf = [ti_idf_values[feature_names.index(word)] if word in feature_names else 0 for word in words]
-            features.extend(pf)
-        return features
-
+            words = [w for w in titlecontent.split() if w not in stop_words]
+            tags = train_data.tags.values[i]
+            truths.extend(w in tags for w in words)
+        return truths
 
     def _predict_for_one_entry(self, entry):
-        prediction = set()
-        for word in entry['titlecontent']:
-            features = self._get_features_for_word(word)
-            if self._predict_if_tag(word):
-                prediction.add(word)
-        return list(prediction)
-
-
-    def _align_prediction(self, prediction, entry):
-        if 'tags' in entry:
-            diff_length = len(prediction) - len(entry['tags'])
-            if diff_length > 0:
-                entry['tags'].extend(['']*diff_length)
-            if diff_length < 0:
-                prediction.extend(['']*(-1*diff_length))
-
-    def _write_example_it_idf_features(self, train_data):
-        words = train_data.titlecontent.values[0].split()
-        features_one = [self.ti_idf_vectorizer.transform([x]).toarray() for x in words]
-        features_two = self.ti_idf_vectorizer.transform([' '.join(words)]).toarray()
-        self.feature_names = self.ti_idf_vectorizer.get_feature_names()
-        with open('debug_files/it_idf_feats_per_word', 'wt') as outstream:
-            outstream.write(' '.join(train_data.tags.values[0]) + '\n')
-            outstream.write(' '.join(words) + '\n')
-            for feat in features_one:
-                feat = feat[0]
-                outstream.write('A: ')
-                for i, value in enumerate(feat):
-                    if value != 0:
-                        name = self.feature_names[i]
-                        outstream.write('{}:{}:{}:{} , '.format(i, features_two[0][i], name, value))
-                outstream.write('\n')
-
-    def _write_some_features(self, features):
-        with open('debug_files/feats_per_word', 'wt') as outstream:
-            outstream.write(','.join(features.keys()))
-            for i in range(10):
-                outstream.write(','.join(str(f[i]) for f in features.values()) + '\n')
+        features = self.feature_creator.transform(entry)
+        tag_predictions = self.classifier.predict(features)
+        words = [w for w in entry.titlecontent.values[0].split() if w not in stop_words]
+        predictions = set()
+        for pred, word in zip(tag_predictions, words):
+            if pred:
+                predictions.add(word)
+        return list(predictions)
 
