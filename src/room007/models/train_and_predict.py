@@ -91,7 +91,7 @@ def sample_dataframes(dataframes, size):
 
 def _get_sample_size(test):
     #return 2000 if speed else 10
-    return 0.001 if test else 0.01
+    return 0.001 if test else 0.1
 
 
 def _get_train_test_data(args):

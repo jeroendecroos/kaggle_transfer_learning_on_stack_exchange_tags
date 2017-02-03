@@ -32,8 +32,8 @@ class Features(object):
                 self._times_word_in(data, 'content'),
                 self._is_in_question(data),
         ]
-        if self.changes:
-            features += [self._title_or_content(data)]
+     #   if self.changes:
+        features += [self._title_or_content(data)]
         feats = tuple(zip(*features))
         return feats
 
@@ -84,7 +84,7 @@ class Features(object):
         voc = self.tf_idf_vectorizer.vocabulary_
         features = list(itertools.chain(*train_data.apply(
             lambda row: [tf_idf_data[row['index'], voc.get(word)]
-                         if voc.get(word) else 0
+                         if voc.get(word) else (0 if not self.changes else 1)
                          for word in row['titlecontent'].split()
                          if word not in stop_words], axis=1)
             ))
