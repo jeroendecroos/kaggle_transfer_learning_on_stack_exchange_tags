@@ -48,44 +48,66 @@ def write_predictions(test_name, test_dataframe):
     test_dataframe.to_csv(filename, columns=['id','tags'], index=False)
 
 
-def main():
-    args = get_arguments()
-    start_time = time.time()
-    logger.info('started at {}'.format(time.strftime('%H:%M:%S', time.gmtime())))
+def _get_data(set_name):
     logger.info('loading the data')
-    processed_info = info.ProcessedData(args.set_name)
+    processed_info = info.ProcessedData(set_name)
     train_data_frames = info.get_train_dataframes(processed_info, split_tags=False)
     test_data_frames = info.get_test_dataframes(processed_info)
     logger.info('data loaded')
+    return train_data_frames, test_data_frames
 
+
+def _create_predictor(model, args, kwargs):
     logger.info('creating predictor')
-    predictor_factory = importlib.import_module(args.model).Predictor
-    predictor = predictor_factory(*args.args, **args.kwargs)
+    predictor_factory = importlib.import_module(model).Predictor
+    predictor = predictor_factory(*args, **kwargs)
     logger.info('predictor created')
+    return predictor
 
+
+def time_function(fun):
+    def timed_fun(*args, **kwargs):
+        logger.info('started at {}'.format(time.strftime('%H:%M:%S', time.gmtime())))
+        start_time = time.time()
+        fun(*args, **kwargs)
+        end_time = time.time()
+        time_needed = end_time - start_time
+        logger.info('finished at {}'.format(time.strftime('%H:%M:%S', time.gmtime())))
+        logger.info("it took: {0:.0f} seconds".format(time_needed))
+    return timed_fun
+
+
+def _evaluate_on_test_data(predictor, train_data_frames, test_data_frames):
+    train_data = pandas.concat([data for _, data in train_data_frames.items()], ignore_index=True)
+    predictor.fit(train_data)
+    for frame_name, test_data in test_data_frames.items():
+        logger.info('start predicting for {}, test size {}'.format(frame_name, len(test_data)))
+        predictions = predictor.predict(test_data)
+        logger.info('done predicting')
+        test_data['tags'] = predictions
+        test_data['tags'] = test_data['tags'].apply(' '.join)
+        logger.info('writing result to file')
+        write_predictions(frame_name, test_data)
+        logger.info('result written')
+
+
+def _cross_validate(predictor, train_data_frames):
+    logger.info('started cross-validation testing')
+    result = cross_validation.cross_validate(predictor, train_data_frames)
+    logger.info('finished cross-validation testing')
+    logger.info("cross-validation result: {0:.0f}".format(result))
+
+
+@time_function
+def main():
+    args = get_arguments()
+    train_data_frames, test_data_frames = _get_data(args.set_name)
+    predictor = _create_predictor(args.model, args.args, args.kwargs)
     if args.eval:
-        train_data = pandas.concat([data for _, data in train_data_frames.items()], ignore_index=True)
-
-        predictor.fit(train_data)
-        for frame_name, test_data in test_data_frames.items():
-            logger.info('start predicting for {}, test size {}'.format(frame_name, len(test_data)))
-            predictions = predictor.predict(test_data)
-            logger.info('done predicting')
-            test_data['tags'] = predictions
-            test_data['tags'] = test_data['tags'].apply(' '.join)
-            logger.info('writing result to file')
-            write_predictions(frame_name, test_data)
-            logger.info('result written')
+        _evaluate_on_test_data(predictor, train_data_frames, test_data_frames)
     else:
-        logger.info('started cross-validation testing')
-        result = cross_validation.cross_validate(predictor, train_data_frames)
-        logger.info('finished cross-validation testing')
-        logger.info("cross-validation result: {0:.0f}".format(result))
+        _cross_validate(predictor, train_data_frames)
 
-    end_time = time.time()
-    time_needed = end_time - start_time
-    logger.info('finished at {}'.format(time.strftime('%H:%M:%S', time.gmtime())))
-    logger.info("it took: {0:.0f} seconds".format(time_needed))
 
 
 if __name__ == "__main__":
