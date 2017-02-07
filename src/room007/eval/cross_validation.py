@@ -50,14 +50,14 @@ def cross_validate(learner, frames):
         learner.fit(train_dataset)
         logger.info('lerning complete')
         logger.info('predicting on {}, test size is {}'.format(eval_name, len(eval_dataset)))
-        predictions = learner.predict(eval_dataset)
+        scores[eval_name] = learner.predict(eval_dataset)
         logger.info('done predicting')
         logger.info('calculating the f-score')
-        scores[eval_name] = evaluate(eval_dataset['tags'], predictions)
-        logger.info('the f-score is {0:.2f}'.format(scores[eval_name]))
+
     # Compute the scores.
-    weights, scores = zip(*((len(frames[name]), score)
-                            for name, score in scores.items()))
+    weights, scores = zip(*((len(frames[name]),
+                            evaluate(frames[name]['tags'], preds))
+                            for name, preds in scores.items()))
     return np.average(scores, 0, weights)
 
 
