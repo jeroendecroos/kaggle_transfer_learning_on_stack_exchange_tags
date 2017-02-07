@@ -15,19 +15,6 @@ from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.linear_model import LogisticRegression
 
 
-classifiers = {    ## would be better to add the names to this
-    "Nearest Neighbors": KNeighborsClassifier(3),
-#    "Linear SVM": SVC(kernel="linear", C=0.025),
-#    "RBF SVM": SVC(gamma=2, C=1),
-    #"Gaussian Process":  GaussianProcessClassifier(1.0 * RBF(1.0), warm_start=True), # too slow?
-    "Decision Tree": DecisionTreeClassifier(max_depth=5),
-    "Random Forest": RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
-#    "Neural Net": MLPClassifier(alpha=1),
-    "AdaBoost": AdaBoostClassifier(),
-    "Naive Bayes": GaussianNB(),
-    "Logistic Regression": LogisticRegression(class_weight='balanced'),
-    "QDA": QuadraticDiscriminantAnalysis()
-}
 
 stop_words = nltk.corpus.stopwords.words('english') + [x for x in string.printable]
 
@@ -116,17 +103,24 @@ class Features(object):
 
 
 class Predictor(object):
-    def __init__(self, *args):
-        classifier_name = self._find_classifier(args)
-        self.classifier = classifiers[classifier_name]
-        self.functional_test = 'functional-test' in args
-        self.changes = 'changes' in args
-
-    def _find_classifier(self, args):
-        for classifier in classifiers:
-            if classifier in args:
-                return classifier
-        return "Logistic Regression"
+    classifiers = {    ## would be better to add the names to this
+        "Nearest Neighbors": KNeighborsClassifier(3),
+    #    "Linear SVM": SVC(kernel="linear", C=0.025),
+    #    "RBF SVM": SVC(gamma=2, C=1),
+        #"Gaussian Process":  GaussianProcessClassifier(1.0 * RBF(1.0), warm_start=True), # too slow?
+        "Decision Tree": DecisionTreeClassifier(max_depth=5),
+        "Random Forest": RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
+    #    "Neural Net": MLPClassifier(alpha=1),
+        "AdaBoost": AdaBoostClassifier(),
+        "Naive Bayes": GaussianNB(),
+        "Logistic Regression": LogisticRegression(class_weight='balanced'),
+        "QDA": QuadraticDiscriminantAnalysis()
+    }
+    def __init__(self, *args, **kwargs):
+        classifier_name = kwargs.get('classifier_name', 'Logistic Regression')
+        self.classifier = self.classifiers[classifier_name]
+        self.functional_test = kwargs.get('functional-test', False)
+        self.changes = kwargs.get('changes', False)
 
     def fit(self, train_data):
         print('start fitting')
