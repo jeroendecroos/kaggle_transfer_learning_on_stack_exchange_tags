@@ -27,20 +27,29 @@ class Predictor(object):
         return predictions
 
 
+class ArgumentParser(object):
+    def __init__(self):
+        parser = argparse.ArgumentParser(description='Predict with a model.')
+        parser.add_argument('-e', '--eval', help='apply to the test data', action='store_true')
+        parser.add_argument('-n', '--set-name', default='../interim',
+                help='name of the pre-processed data set')
+        parser.add_argument('-m', '--model', default='word_tag_predictor',
+                help=('the name of the model to train and test, '
+                      'should be an importable module containing a Predictor class'))
+        parser.add_argument('-a', '--args', nargs='*', default=[],
+                help='arguments passed to the constructor of Predictor, values with ":" are considered kwargs')
+        self.parser = parser
+
+    def parse_args(self):
+        args = self.parser.parse_args()
+        args.kwargs = dict(arg.split(':') for arg in args.args)
+        args.args = [arg for arg in args.args if ':' not in arg]
+        return args
+
+
 def get_arguments():
-    parser = argparse.ArgumentParser(description='Predict with a model.')
-    parser.add_argument('-e', '--eval', help='apply to the test data', action='store_true')
-    parser.add_argument('-n', '--set-name', default='../interim',
-            help='name of the pre-processed data set')
-    parser.add_argument('-m', '--model', default='word_tag_predictor',
-            help=('the name of the model to train and test, '
-                  'should be an importable module containing a Predictor class'))
-    parser.add_argument('-a', '--args', nargs='*', default=[],
-            help='arguments passed to the constructor of Predictor, values with ":" are considered kwargs')
-    args = parser.parse_args()
-    args.kwargs = dict(arg.split(':') for arg in args.args)
-    args.args = [arg for arg in args.args if ':' not in arg]
-    return args
+    parser = ArgumentParser()
+    return parser.parse_args()
 
 
 def write_predictions(test_name, test_dataframe):
@@ -48,7 +57,7 @@ def write_predictions(test_name, test_dataframe):
     test_dataframe.to_csv(filename, columns=['id','tags'], index=False)
 
 
-def _get_data(set_name):
+def get_data(set_name):
     logger.info('loading the data')
     processed_info = info.ProcessedData(set_name)
     train_data_frames = info.get_train_dataframes(processed_info, split_tags=False)
@@ -69,15 +78,16 @@ def time_function(fun):
     def timed_fun(*args, **kwargs):
         logger.info('started at {}'.format(time.strftime('%H:%M:%S', time.gmtime())))
         start_time = time.time()
-        fun(*args, **kwargs)
+        returns = fun(*args, **kwargs)
         end_time = time.time()
         time_needed = end_time - start_time
         logger.info('finished at {}'.format(time.strftime('%H:%M:%S', time.gmtime())))
         logger.info("it took: {0:.0f} seconds".format(time_needed))
+        return returns, time_needed
     return timed_fun
 
 
-def _evaluate_on_test_data(predictor, train_data_frames, test_data_frames):
+def evaluate_on_test_data(predictor, train_data_frames, test_data_frames):
     train_data = pandas.concat([data for _, data in train_data_frames.items()], ignore_index=True)
     predictor.fit(train_data)
     for frame_name, test_data in test_data_frames.items():
@@ -91,22 +101,23 @@ def _evaluate_on_test_data(predictor, train_data_frames, test_data_frames):
         logger.info('result written')
 
 
-def _cross_validate(predictor, train_data_frames):
+def cross_validate(predictor, train_data_frames):
     logger.info('started cross-validation testing')
     result = cross_validation.cross_validate(predictor, train_data_frames)
     logger.info('finished cross-validation testing')
     logger.info("cross-validation result: {0:.0f}".format(result))
+    return result
 
 
 @time_function
 def main():
     args = get_arguments()
-    train_data_frames, test_data_frames = _get_data(args.set_name)
+    train_data_frames, test_data_frames = get_data(args.set_name)
     predictor = _create_predictor(args.model, args.args, args.kwargs)
     if args.eval:
-        _evaluate_on_test_data(predictor, train_data_frames, test_data_frames)
+        evaluate_on_test_data(predictor, train_data_frames, test_data_frames)
     else:
-        _cross_validate(predictor, train_data_frames)
+        cross_validate(predictor, train_data_frames)
 
 
 
