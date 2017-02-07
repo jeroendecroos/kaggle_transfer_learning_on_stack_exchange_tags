@@ -17,6 +17,7 @@ setup(
     install_requires=['NumPy==1.12.0',
                       'scipy==0.18.1',
                       'scikit-learn==0.18.1',
+                      'editdistance==0.3.1',
     #                   'Mako>=1.0.0',
     #                   'PyYAML==3.11',
     #                   'requests==2.11.1',
