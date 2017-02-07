@@ -41,18 +41,32 @@ class Features(object):
     def fit(self, train_data):
         self._train_tf_idf_vectorizer(train_data)
 
-    def transform(self, train_data):
-        tf_idf_features = self._get_tf_idf_features_per_word(train_data)
-        in_title_features = self._times_word_in('title', train_data)
-        in_content_feature = self._times_word_in('content', train_data)
-        if self.changes:
-            in_question_feature = self._is_in_question(train_data)
-            feats = tuple(zip(tf_idf_features, in_title_features, in_content_feature, in_question_feature))
-        else:
-            feats = tuple(zip(tf_idf_features, in_title_features, in_content_feature))
+    def transform(self, data):
+        self._add_number_of_non_stop_words(data)
+        features = [
+                self._get_tf_idf_features_per_word(data),
+                self._times_word_in(data, 'title'),
+                self._times_word_in(data, 'content'),
+                self._is_in_question(data),
+        ]
+     #   if self.changes:
+        features += [self._title_or_content(data)]
+        feats = tuple(zip(*features))
         return feats
 
-    def _is_in_question(self, train_data):
+    def _title_or_content(self, data):
+        return list(itertools.chain(*data.apply(
+            lambda row: [1] * len(row['title_non_stop_words']) + [0] * len(row['content_non_stop_words']),
+            axis=1)))
+
+
+    def _add_number_of_non_stop_words(self, data):
+        split_row = lambda row: [x for x in row.split() if x not in stop_words]
+        data['title_non_stop_words'] = data['title'].apply(split_row)
+        data['content_non_stop_words'] = data['content'].apply(split_row)
+
+
+    def _is_in_question(self, data):
         def is_in_question(row):
             features = []
             question = 0
@@ -61,17 +75,12 @@ class Features(object):
                     question = int(word == '?')
                 if word not in stop_words:
                     features.append(question)
-            import pdb; pdb.set_trace()
             return features[::-1]
-        return list(itertools.chain(*train_data['titlecontent'].apply(
+        return list(itertools.chain(*data['titlecontent'].apply(
             is_in_question
             )))
 
-    def _add_number_of_non_stop_words(self, data):
-        data['title_non_stop_words'] = [x for x in row['title'] if x not in stop_words]
-        data['content_non_stop_words'] = [x for x in row['content'] if x not in stop_words]
-
-    def _times_word_in(self, column, data):
+    def _times_word_in(self, data, column):
         return list(itertools.chain(*data.apply(
             lambda row: [row[column].split().count(word)
                          for word in row['titlecontent'].split()
@@ -79,11 +88,11 @@ class Features(object):
             ))
 
 
-    def _train_tf_idf_vectorizer(self, train_data):
+    def _train_tf_idf_vectorizer(self, data):
         self.tf_idf_vectorizer = TfidfVectorizer(stop_words=stop_words)
-        self.tf_idf_vectorizer.fit(train_data['titlecontent'])
+        self.tf_idf_vectorizer.fit(data['titlecontent'])
         #if self.functional_test:
-        #    self._write_example_it_idf_features(train_data)
+        #    self._write_example_it_idf_features(data)
 
 
     def _get_tf_idf_features_per_word(self, train_data):
@@ -92,7 +101,7 @@ class Features(object):
         voc = self.tf_idf_vectorizer.vocabulary_
         features = list(itertools.chain(*train_data.apply(
             lambda row: [tf_idf_data[row['index'], voc.get(word)]
-                         if voc.get(word) else 0
+                         if voc.get(word) else (0 if not self.changes else 1)
                          for word in row['titlecontent'].split()
                          if word not in stop_words], axis=1)
             ))
