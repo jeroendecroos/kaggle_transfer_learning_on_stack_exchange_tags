@@ -2,11 +2,14 @@
 # vim: set fileencoding=utf-8 :
 
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
 
 import nltk
 import string
 stop_words = nltk.corpus.stopwords.words('english') + [x for x in string.printable]
 
+def _get_title_content(data):
+    return data.apply(lambda row:  row['title'] + ' . ' + row['content'], axis=1)
 
 class Predictor(object):
     def __init__(self, *args):
@@ -16,14 +19,15 @@ class Predictor(object):
 
     def fit(self, train_data):
         print('start fitting')
+#        train_data, _ = train_test_split(train_data, test_size=0.99)
         self.vectorizer = TfidfVectorizer(stop_words=stop_words)
-        train_features = self.vectorizer.fit_transform(train_data['titlecontent'])
+        train_features = self.vectorizer.fit_transform(_get_title_content(train_data))
         self.feature_names = self.vectorizer.get_feature_names()
 
     def predict(self, test_dataframe):
         print('start predicting')
         number_of_tags = 3
-        tf_idf_data = self.vectorizer.transform(test_dataframe['titlecontent'])
+        tf_idf_data = self.vectorizer.transform(_get_title_content(test_dataframe))
         test_dataframe['index'] = range(tf_idf_data.shape[0])
         test_dataframe['nonzeros'] = test_dataframe['index'].apply(
                 lambda x: tf_idf_data[x, :].nonzero()[1].tolist())
