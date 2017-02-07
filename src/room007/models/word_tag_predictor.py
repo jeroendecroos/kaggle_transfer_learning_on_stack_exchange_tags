@@ -101,26 +101,50 @@ class Features(object):
             for feat in features:
                 outstream.write(','.join(f for f in feat) + '\n')
 
+class Option(object):
+    def __init__(self, options, default):
+        self.choices = {}
+        self.default = default
+
+class OptionsSetter(object):
+    def __init__(self):
+        self.options = {}
+        self.options['classifier'] = Option(
+            {"Nearest Neighbors": KNeighborsClassifier(3),
+             # "Linear SVM": SVC(kernel="linear", C=0.025),
+             # "RBF SVM": SVC(gamma=2, C=1),
+             # "Gaussian Process":  GaussianProcessClassifier(1.0 * RBF(1.0), warm_start=True), # too slow?
+             "Decision Tree": DecisionTreeClassifier(max_depth=5),
+             "Random Forest": RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
+             # "Neural Net": MLPClassifier(alpha=1),
+             "AdaBoost": AdaBoostClassifier(),
+             "Naive Bayes": GaussianNB(),
+             "Logistic Regression": LogisticRegression(class_weight='balanced'),
+             "QDA": QuadraticDiscriminantAnalysis()
+             }, "Logistic Regression")
+        self.options['changes'] = Option(
+            {'True': True,
+             'False': False,
+             }, 'True')
+
+    def set(self, instance, **kwargs):
+        """ set the attributes of the instances dependent on this options.
+        if an option_name is set in kwargs, then those are used.
+        else the default values are used
+        """
+        for option_name, option in self.options.items():
+            choice = kwargs.get(option_name, option.default)
+            option_value = option.choices[choice]
+            setattr(instance, option_name, option_value)
+
 
 class Predictor(object):
-    classifiers = {    ## would be better to add the names to this
-        "Nearest Neighbors": KNeighborsClassifier(3),
-    #    "Linear SVM": SVC(kernel="linear", C=0.025),
-    #    "RBF SVM": SVC(gamma=2, C=1),
-        #"Gaussian Process":  GaussianProcessClassifier(1.0 * RBF(1.0), warm_start=True), # too slow?
-        "Decision Tree": DecisionTreeClassifier(max_depth=5),
-        "Random Forest": RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
-    #    "Neural Net": MLPClassifier(alpha=1),
-        "AdaBoost": AdaBoostClassifier(),
-        "Naive Bayes": GaussianNB(),
-        "Logistic Regression": LogisticRegression(class_weight='balanced'),
-        "QDA": QuadraticDiscriminantAnalysis()
-    }
     def __init__(self, *args, **kwargs):
-        classifier_name = kwargs.get('classifier_name', 'Logistic Regression')
-        self.classifier = self.classifiers[classifier_name]
         self.functional_test = kwargs.get('functional-test', False)
-        self.changes = kwargs.get('changes', False)
+        self.classifier = None
+        self.changes = None
+        options_setter = OptionsSetter(**kwargs)
+        option_setter.set(self, **kwargs)
 
     def fit(self, train_data):
         print('start fitting')

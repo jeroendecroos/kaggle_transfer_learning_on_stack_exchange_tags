@@ -19,7 +19,6 @@ class Predictor(object):
 
     def fit(self, train_data):
         print('start fitting')
-#        train_data, _ = train_test_split(train_data, test_size=0.99)
         self.vectorizer = TfidfVectorizer(stop_words=stop_words)
         train_features = self.vectorizer.fit_transform(_get_title_content(train_data))
         self.feature_names = self.vectorizer.get_feature_names()
@@ -34,7 +33,7 @@ class Predictor(object):
         predictions = test_dataframe.apply(
             lambda row: [self.feature_names[i] for i, value in 
                          sorted(
-                             zip(row['nonzeros'],[ tf_idf_data[row['index'], x] for x in row['nonzeros']]),
+                             zip(row['nonzeros'], [tf_idf_data[row['index'], x] for x in row['nonzeros']]),
                              key=lambda t: t[1] * -1)[:number_of_tags]
                          ],
             axis=1)
