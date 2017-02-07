@@ -28,8 +28,8 @@ classifiers = {    ## would be better to add the names to this
 #    "Linear SVM": SVC(kernel="linear", C=0.025),
 #    "RBF SVM": SVC(gamma=2, C=1),
     #"Gaussian Process":  GaussianProcessClassifier(1.0 * RBF(1.0), warm_start=True), # too slow?
-    "Decision Tree": DecisionTreeClassifier(max_depth=5),
-    "Random Forest": RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
+#    "Decision Tree": DecisionTreeClassifier(max_depth=5),
+#    "Random Forest": RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
 #    "Neural Net": MLPClassifier(alpha=1),
     "AdaBoost": AdaBoostClassifier(),
     "Naive Bayes": GaussianNB(),
@@ -78,7 +78,7 @@ def do_extra_cleaning(data):
 
 
 def apply_preprocessing(data):
-    data['titlecontent'] = data['title'] + ' ' + data['content']
+    data['titlecontent'] = data['title'] + ' . ' + data['content']
     do_extra_cleaning(data)
 
 
@@ -103,7 +103,7 @@ def _get_train_test_data(args):
             apply_preprocessing(data)
         return dataframes
     data_info = info.CleanedData()
-    train_dataframes = _select_and_process(info.get_train_dataframes(data_info), True)
+    train_dataframes = _select_and_process(info.get_train_dataframes(data_info), args.reduce_train_data)
     if args.eval:
         test_dataframes = _select_and_process(info.get_test_dataframes(data_info), False)
     else:
@@ -116,7 +116,7 @@ def main():
     predictor_factory = importlib.import_module(args.model).Predictor
     if args.eval:
         train_data = pandas.concat([data for name, data in train_dataframes.items()], ignore_index=True)
-        classifier = getattr('classifier', args, "Logistic Regression")
+        classifier = classifiers[getattr(args, 'classifier', "Logistic Regression")]
         predictor = predictor_factory(functional_test=args.eval, classifier=classifier)
         predictor.fit(train_data)
         for fname, test_data in test_dataframes.items():

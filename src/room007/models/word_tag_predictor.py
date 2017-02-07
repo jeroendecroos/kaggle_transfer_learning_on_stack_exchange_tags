@@ -9,17 +9,46 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn import naive_bayes
 from sklearn import linear_model
 
+import spacy
+nlp = spacy.load('en')
+
 from pandas import DataFrame
 import nltk
 import string
 stop_words = nltk.corpus.stopwords.words('english') + [x for x in string.printable]
 
 
+
+
 class Features(object):
     def __init__(self, functional_test=False, changes=False):
         self.functional_test = functional_test
         self.tf_idf_vectorizer = None
-        self.changes=changes
+        self.changes = changes
+        self.feature_dir = 'data/features'
+
+    def load_or_create_feature(self, fun, feature_name, optional_save=False):
+        def _fun(data, *args, **kwargs):
+            feature_location = os.path.join(self.feature_dir, feature_name)
+            if os.path.exist(feature_location):
+                features = self._load_features(data['id'], feature_location)
+            else:
+                features = fun(data, *args, **kwargs)
+                if optional_save:
+                    self._save_features(data, features)
+            return features
+        return _fun
+
+    def _load_features(self, ids, filepath):
+        iter_csv = pandas.read_csv(filepath, iterator=True, chunksize=1000)
+        dataframe = pandas.concat([chunk[chunk['id'] in ids] for chunk in iter_csv])
+
+    def _save_features(self, data, features):
+        features = deque(features)
+        data['features'] = data.apply(lambda row:
+                [features.popleft() for _ in range(len(row['title_non_stop_words'])+len(row['content_non_stop_words']))],
+            axis=1)
+        pass
 
     def fit(self, train_data):
         self._train_tf_idf_vectorizer(train_data)
@@ -31,11 +60,18 @@ class Features(object):
                 self._times_word_in(data, 'title'),
                 self._times_word_in(data, 'content'),
                 self._is_in_question(data),
+                self._title_or_content(data),
         ]
-     #   if self.changes:
-        features += [self._title_or_content(data)]
+        if self.changes:
+            s_feats = self._spacy_features(data)
+            features.extend(s_feats)
         feats = tuple(zip(*features))
         return feats
+
+    def _spacy_features(self, data):
+        return [[x for x in itertools.chain(*data.apply(
+            lambda row: [tags.pos_ == "NOUN" for word, tags in zip(row['titlecontent'].split(), nlp(row['titlecontent'])) if word not in stop_words],
+            axis=1))]]
 
     def _title_or_content(self, data):
         return list(itertools.chain(*data.apply(
@@ -84,7 +120,7 @@ class Features(object):
         voc = self.tf_idf_vectorizer.vocabulary_
         features = list(itertools.chain(*train_data.apply(
             lambda row: [tf_idf_data[row['index'], voc.get(word)]
-                         if voc.get(word) else (0 if not self.changes else 1)
+                         if voc.get(word) else 1
                          for word in row['titlecontent'].split()
                          if word not in stop_words], axis=1)
             ))
