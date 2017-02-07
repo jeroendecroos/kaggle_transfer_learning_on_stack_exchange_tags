@@ -51,12 +51,6 @@ class CleanedData(Data):
         self.data_dir = join(PROJECT_DIR, 'data', 'interim')
 
 
-class ProcessedData(Data):
-    def __init__(self, name):
-        super().__init__()
-        self.data_dir = join(PROJECT_DIR, 'data', 'processed', name)
-
-
 def load_dataset(filepath, split_tags=True):
     frame = pandas.read_csv(filepath)
     if split_tags:
@@ -82,9 +76,6 @@ def get_test_dataframes(data_info):
 def save_training_data(data_info, data):
     for data_set, data_filepath in zip(data_info.training_sets, data_info.training_files):
         print(data_filepath)
-        directory = dirname(data_filepath)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
         data[data_set].to_csv(data_filepath, index=False)
 
 

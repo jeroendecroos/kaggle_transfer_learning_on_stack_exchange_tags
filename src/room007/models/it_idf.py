@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
 # vim: set fileencoding=utf-8 :
 
+import itertools
+import re
+
+from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+from room007.data import info
 import nltk
 import string
 stop_words = nltk.corpus.stopwords.words('english') + [x for x in string.printable]
 
 
 class Predictor(object):
-    def __init__(self, *args):
+    def __init__(self, functional_test=False):
         self.vectorizer = None
         self.feature_names = None
-        self.functional_test = 'functional-test' in args
+        self.functional_test = functional_test
 
     def fit(self, train_data):
         print('start fitting')

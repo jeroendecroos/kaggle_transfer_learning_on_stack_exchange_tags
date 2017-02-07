@@ -2,17 +2,14 @@
 # vim: set fileencoding=utf-8 :
 
 from functools import reduce
-from itertools import islice, chain
+from itertools import islice
 
 import numpy as np
 import pandas as pd
-import logging
 from sklearn.metrics import f1_score
 from sklearn.preprocessing import MultiLabelBinarizer
 
 from room007.data import info
-
-logger = logging.getLogger()
 
 
 def evaluate(expected, predicted):
@@ -37,27 +34,18 @@ def cross_validate(learner, frames):
 
     """
 
-    scores = dict()
+    predictions = dict()
     # Run the cross-validation rounds.
     # XXX Could be easily parallelized.
     for eval_name, eval_dataset in frames.items():
-        logger.info('evaluating on {}'.format(eval_name))
-        logger.info('creating train set')
         train_dataset = pd.concat(frame for name, frame in frames.items()
                                   if name != eval_name)
-        logger.info('train set created')
-        logger.info('learning on the train set')
         learner.fit(train_dataset)
-        logger.info('lerning complete')
-        logger.info('predicting on {}, test size is {}'.format(eval_name, len(eval_dataset)))
-        predictions = learner.predict(eval_dataset)
-        logger.info('done predicting')
-        logger.info('calculating the f-score')
-        scores[eval_name] = evaluate(eval_dataset['tags'], predictions)
-        logger.info('the f-score is {0:.2f}'.format(scores[eval_name]))
+        predictions[eval_name] = learner.predict(eval_dataset)
     # Compute the scores.
-    weights, scores = zip(*((len(frames[name]), score)
-                            for name, score in scores.items()))
+    weights, scores = zip(*((len(frames[name]),
+                             evaluate(frames[name]['tags'], preds))
+                            for name, preds in predictions.items()))
     return np.average(scores, 0, weights)
 
 
@@ -79,5 +67,4 @@ def test_oracle():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     test_oracle()
