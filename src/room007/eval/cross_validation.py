@@ -22,7 +22,8 @@ def evaluate(expected, predicted):
     coder.fit([all_tags])
     return f1_score(coder.transform(expected),
                     coder.transform(predicted),
-                    average='macro')
+                    average='weighted')  # TODO Find what Jeroen intended by
+                                         # putting 'macro' here.
 
 
 def cross_validate(learner, frames):
