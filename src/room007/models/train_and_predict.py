@@ -60,7 +60,7 @@ def write_predictions(test_name, test_dataframe):
 def get_data(set_name):
     logger.info('loading the data')
     processed_info = info.ProcessedData(set_name)
-    train_data_frames = info.get_train_dataframes(processed_info, split_tags=False)
+    train_data_frames = info.get_train_dataframes(processed_info, split_tags=True)
     test_data_frames = info.get_test_dataframes(processed_info)
     logger.info('data loaded')
     return train_data_frames, test_data_frames
@@ -105,7 +105,7 @@ def cross_validate(predictor, train_data_frames):
     logger.info('started cross-validation testing')
     result = cross_validation.cross_validate(predictor, train_data_frames)
     logger.info('finished cross-validation testing')
-    logger.info("cross-validation result: {0:.0f}".format(result))
+    logger.info("cross-validation result: {}".format(result))
     return result
 
 
