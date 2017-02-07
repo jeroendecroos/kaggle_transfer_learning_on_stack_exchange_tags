@@ -14,19 +14,6 @@ from room007.data import info
 logger = logging.getLogger()
 
 
-class Predictor(object):
-    def __init__(self, functional_test=False):
-        self.functional_test = functional_test
-
-    def fit(self, train_data):
-        print('start fitting {}'.format(len(train_data)))
-
-    def predict(self, test_data_frame):
-        print('start predicting')
-        predictions = [[''] for _ in range(test_data_frame)]
-        return predictions
-
-
 class ArgumentParser(object):
     def __init__(self):
         parser = argparse.ArgumentParser(description='Predict with a model.')

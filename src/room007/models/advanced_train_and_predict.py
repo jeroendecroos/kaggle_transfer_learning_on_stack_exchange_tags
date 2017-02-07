@@ -9,23 +9,11 @@ import pandas as pandas
 from sklearn.metrics import f1_score
 
 from room007.models import train_and_predict
+from room007.models import model
 from room007.eval import cross_validation
 from room007.data import info
 
 logger = logging.getLogger()
-
-
-class Predictor(object):
-    def __init__(self):
-        pass
-
-    def fit(self, train_data):
-        print('start fitting {}'.format(len(train_data)))
-
-    def predict(self, test_dataframe):
-        print('start predicting')
-        predictions = [[''] for _ in range(test_dataframe)]
-        return predictions
 
 
 class ArgumentParser(train_and_predict.ArgumentParser):
@@ -90,38 +78,34 @@ def _get_data(args):
     return train_data_frames, test_data_frames
 
 
+def log_results(results):
+    logger.info('#################################################')
+    logger.info('###   score   ###   classifier   ###   time   ###')
+    logger.info('#################################################')
+    for name, result, time_needed in sorted(results, key=lambda x: x[1]*-1):
+        logger.info("{} {} {}".format(result, name, time_needed))
+    logger.info('#################################################')
+
+
 @train_and_predict.time_function
 def main():
     args = get_arguments()
     train_data_frames, test_data_frames = _get_data(args)
-    predictor_factory = importlib.import_module(args.model).Predictor
+    model_module = importlib.import_module(args.model)
+    predictor_factory = model_module.Predictor
     if args.eval:
         predictor = predictor_factory(*args.args, **args.kwargs)
         train_and_predict.evaluate_on_test_data(predictor, train_data_frames, test_data_frames)
     else:
-            results = []
-#        if 'classifier_name' not in args.kwargs:
-#            classifiers = predictor_factory.classifiers.keys()
-#        else:
-#            classifiers = [args.kwargs.get('classifier_name', 'Logistic Regression')]
-#        for name in classifiers:
-#            args.kwargs['classifier_name'] = name
-            name='shit'
-            predictor = predictor_factory(*args.args, **args.kwargs)
+        results = []
+        options_setter = getattr(model_module, "OptionsSetter", model.OptionsSetter)()
+        for name, options in options_setter.combinations(args.kwargs):
+            logger.info('started cross_validation for {}'.format(name))
+            predictor = predictor_factory(*args.args, **options)
             result, time_needed = train_and_predict.time_function(
                     train_and_predict.cross_validate)(predictor, train_data_frames)
             results.append((name, result, time_needed))
-            if False: #True: ##changes
-                name = name+' changes'
-                logger.info('started cross_validation for {}'.format(name))
-                predictor = predictor_factory(changes=True, *args.args, **args.kwargs)
-                result, time_needed = train_and_predict.time_function(
-                    train_and_predict.cross_validate)(predictor, train_data_frames)
-                results.append((name, result, time_needed))
-            print('############################################"')
-            for name, result, time_needed in sorted(results, key=lambda x: x[1]*-1):
-                print("{} {} {}".format(result, name, time_needed))
-
+        log_results(results)
 
 
 if __name__ == "__main__":

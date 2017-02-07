@@ -8,10 +8,12 @@ import nltk
 import string
 stop_words = nltk.corpus.stopwords.words('english') + [x for x in string.printable]
 
+from room007.models import model
+
 def _get_title_content(data):
     return data.apply(lambda row:  row['title'] + ' . ' + row['content'], axis=1)
 
-class Predictor(object):
+class Predictor(model.Predictor):
     def __init__(self, *args):
         self.vectorizer = None
         self.feature_names = None

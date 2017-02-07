@@ -14,6 +14,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.linear_model import LogisticRegression
 
+from room007.models import model
 
 
 stop_words = nltk.corpus.stopwords.words('english') + [x for x in string.printable]
@@ -23,7 +24,7 @@ class Features(object):
     def __init__(self, functional_test=False, changes=False):
         self.functional_test = functional_test
         self.tf_idf_vectorizer = None
-        self.changes=changes
+        self.changes = changes
 
     def fit(self, train_data):
         self._train_tf_idf_vectorizer(train_data)
@@ -101,12 +102,14 @@ class Features(object):
             for feat in features:
                 outstream.write(','.join(f for f in feat) + '\n')
 
+
 class Option(object):
     def __init__(self, options, default):
         self.choices = {}
         self.default = default
 
-class OptionsSetter(object):
+
+class OptionsSetter(model.OptionsSetter):
     def __init__(self):
         self.options = {}
         self.options['classifier'] = Option(
@@ -138,13 +141,12 @@ class OptionsSetter(object):
             setattr(instance, option_name, option_value)
 
 
-class Predictor(object):
+class Predictor(model.Predictor):
     def __init__(self, *args, **kwargs):
         self.functional_test = kwargs.get('functional-test', False)
         self.classifier = None
         self.changes = None
-        options_setter = OptionsSetter(**kwargs)
-        option_setter.set(self, **kwargs)
+        self.set_options(kwargs)
 
     def fit(self, train_data):
         print('start fitting')
