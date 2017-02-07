@@ -28,14 +28,18 @@ class Predictor(object):
 
 
 def get_arguments():
-    parser = argparse.ArgumentParser(description='Predict with it-idf.')
+    parser = argparse.ArgumentParser(description='Predict with a model.')
     parser.add_argument('-e', '--eval', help='apply to the test data', action='store_true')
-    parser.add_argument('-n', '--set-name', help='name of the pre-processed data set')
-    parser.add_argument('-m', '--model', help=('the name of the model to train and test, '
-                                         'should be an importable module containing a Predictor class'))
+    parser.add_argument('-n', '--set-name', default='../interim',
+            help='name of the pre-processed data set')
+    parser.add_argument('-m', '--model', default='word_tag_predictor',
+            help=('the name of the model to train and test, '
+                  'should be an importable module containing a Predictor class'))
     parser.add_argument('-a', '--args', nargs='*', default=[],
-                        help='arguments passed to the constructor of Predictor')
+            help='arguments passed to the constructor of Predictor, values with ":" are considered kwargs')
     args = parser.parse_args()
+    args.kwargs = dict(arg.split(':') for arg in args.args)
+    args.args = [arg for arg in args.args if ':' not in arg]
     return args
 
 
@@ -56,7 +60,7 @@ def main():
 
     logger.info('creating predictor')
     predictor_factory = importlib.import_module(args.model).Predictor
-    predictor = predictor_factory(*args.args)
+    predictor = predictor_factory(*args.args, **args.kwargs)
     logger.info('predictor created')
 
     if args.eval:
