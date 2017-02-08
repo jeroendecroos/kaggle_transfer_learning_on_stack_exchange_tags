@@ -83,7 +83,7 @@ def log_results(results):
     logger.info('###   score   ###   classifier   ###   time   ###')
     logger.info('#################################################')
     for name, result, time_needed in sorted(results, key=lambda x: x[1]*-1):
-        logger.info("{} {} {}".format(result, name, time_needed))
+        logger.info("{:.4f} {} {:.2f}".format(result, name, time_needed))
     logger.info('#################################################')
 
 

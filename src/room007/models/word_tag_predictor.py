@@ -105,7 +105,7 @@ class Features(object):
 
 class Option(object):
     def __init__(self, options, default):
-        self.choices = {}
+        self.choices = options
         self.default = default
 
 
@@ -130,18 +130,10 @@ class OptionsSetter(model.OptionsSetter):
              'False': False,
              }, 'True')
 
-    def set(self, instance, **kwargs):
-        """ set the attributes of the instances dependent on this options.
-        if an option_name is set in kwargs, then those are used.
-        else the default values are used
-        """
-        for option_name, option in self.options.items():
-            choice = kwargs.get(option_name, option.default)
-            option_value = option.choices[choice]
-            setattr(instance, option_name, option_value)
-
 
 class Predictor(model.Predictor):
+    OptionsSetter = OptionsSetter
+
     def __init__(self, *args, **kwargs):
         self.functional_test = kwargs.get('functional-test', False)
         self.classifier = None
