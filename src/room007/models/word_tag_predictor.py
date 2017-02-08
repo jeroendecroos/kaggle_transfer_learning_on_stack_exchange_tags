@@ -1,17 +1,22 @@
-#!/usr/bin/env python3
 # vim: set fileencoding=utf-8 :
 
-import collections
-
 import itertools
-from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn import naive_bayes
 from sklearn import linear_model
 
-from pandas import DataFrame
 import nltk
 import string
+
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.linear_model import LogisticRegression
+
+from room007.models import model
+
+
 stop_words = nltk.corpus.stopwords.words('english') + [x for x in string.printable]
 
 
@@ -19,7 +24,7 @@ class Features(object):
     def __init__(self, functional_test=False, changes=False):
         self.functional_test = functional_test
         self.tf_idf_vectorizer = None
-        self.changes=changes
+        self.changes = changes
 
     def fit(self, train_data):
         self._train_tf_idf_vectorizer(train_data)
@@ -98,13 +103,42 @@ class Features(object):
                 outstream.write(','.join(f for f in feat) + '\n')
 
 
-class Predictor(object):
-    def __init__(self, functional_test=False, classifier=None, changes=False):
-        if classifier == None:
-            classifier = linear_model.LogisticRegression(class_weight='balanced')
-        self.classifier = classifier
-        self.functional_test = functional_test
-        self.changes = changes
+class Option(object):
+    def __init__(self, options, default):
+        self.choices = options
+        self.default = default
+
+
+class OptionsSetter(model.OptionsSetter):
+    def __init__(self):
+        self.options = {}
+        self.options['classifier'] = Option(
+            {"Nearest Neighbors": KNeighborsClassifier(3),
+             # "Linear SVM": SVC(kernel="linear", C=0.025),
+             # "RBF SVM": SVC(gamma=2, C=1),
+             # "Gaussian Process":  GaussianProcessClassifier(1.0 * RBF(1.0), warm_start=True), # too slow?
+             "Decision Tree": DecisionTreeClassifier(max_depth=5),
+             "Random Forest": RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
+             # "Neural Net": MLPClassifier(alpha=1),
+             "AdaBoost": AdaBoostClassifier(),
+             "Naive Bayes": GaussianNB(),
+             "Logistic Regression": LogisticRegression(class_weight='balanced'),
+             "QDA": QuadraticDiscriminantAnalysis()
+             }, "Logistic Regression")
+        self.options['changes'] = Option(
+            {'True': True,
+             'False': False,
+             }, 'True')
+
+
+class Predictor(model.Predictor):
+    OptionsSetter = OptionsSetter
+
+    def __init__(self, *args, **kwargs):
+        self.functional_test = kwargs.get('functional-test', False)
+        self.classifier = None
+        self.changes = None
+        self.set_options(kwargs)
 
     def fit(self, train_data):
         print('start fitting')
