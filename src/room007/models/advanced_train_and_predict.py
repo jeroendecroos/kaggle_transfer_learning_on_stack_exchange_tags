@@ -5,12 +5,8 @@ import re
 import importlib
 import logging
 
-import pandas as pandas
-from sklearn.metrics import f1_score
-
 from room007.models import train_and_predict
 from room007.models import model
-from room007.eval import cross_validation
 from room007.data import info
 
 logger = logging.getLogger()

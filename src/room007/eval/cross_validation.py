@@ -18,7 +18,7 @@ logger = logging.getLogger()
 def evaluate(expected, predicted):
     all_tags = (reduce(set.union, expected, set()) |
                 reduce(set.union, predicted, set()))
-    coder = MultiLabelBinarizer()
+    coder = MultiLabelBinarizer(sparse_output=True)
     coder.fit([all_tags])
     return f1_score(coder.transform(expected),
                     coder.transform(predicted),
@@ -37,7 +37,7 @@ def cross_validate(learner, frames):
 
     """
 
-    scores = dict()
+    predictions = dict()
     # Run the cross-validation rounds.
     # XXX Could be easily parallelized.
     for eval_name, eval_dataset in frames.items():
@@ -50,20 +50,23 @@ def cross_validate(learner, frames):
         learner.fit(train_dataset)
         logger.info('lerning complete')
         logger.info('predicting on {}, test size is {}'.format(eval_name, len(eval_dataset)))
-        scores[eval_name] = learner.predict(eval_dataset)
+        predictions[eval_name] = learner.predict(eval_dataset)
         logger.info('done predicting')
-        logger.info('calculating the f-score')
 
+
+    logger.info('calculating the f-scores')
     # Compute the scores.
-    weights, scores = zip(*((len(frames[name]),
-                            evaluate(frames[name]['tags'], preds))
-                            for name, preds in scores.items()))
+    weights, scores, names = zip(*((len(frames[name]),
+                            evaluate(frames[name]['tags'], prediction), name)
+                            for name, prediction in predictions.items()))
+    for score, name in zip(scores, names):
+        logger.info('result for {} is {}'.format(name, score))
     return np.average(scores, 0, weights)
 
 
 def test_oracle():
     data_info = info.CleanedData()
-    dataframes = dict(
+    data_frames = dict(
         islice(info.get_train_dataframes(data_info).items(), 0, 3))
 
     class Oracle(object):
@@ -73,7 +76,7 @@ def test_oracle():
         def predict(self, dataset):
             return dataset['tags']
 
-    score = cross_validate(Oracle(), dataframes)
+    score = cross_validate(Oracle(), data_frames)
     print(score)
     assert score == 1.0
 
