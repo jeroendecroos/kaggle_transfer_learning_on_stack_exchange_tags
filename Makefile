@@ -17,6 +17,7 @@ IS_ANACONDA=$(shell python -c "import sys;t=str('anaconda' in sys.version.lower(
 requirements: test_environment
 	pip install -r requirements.txt
 	pip install -e .
+	$(PYTHON_INTERPRETER) -c 'import nltk; nltk.download("punkt")'
 
 make_test:
 	@echo $(shell pwd)
