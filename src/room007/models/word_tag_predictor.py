@@ -1,6 +1,6 @@
 # vim: set fileencoding=utf-8 :
 
-import itertools
+from itertools import chain
 import logging
 import string
 
@@ -19,7 +19,11 @@ from sklearn.tree import DecisionTreeClassifier
 from room007.models import model
 
 
-stop_words = nltk.corpus.stopwords.words('english') + list(string.printable)
+stop_words = (set(nltk.corpus.stopwords.words('english'))
+              .union(string.printable))
+
+def split_row(row):
+    return [x for x in row.split() if x not in stop_words]
 
 
 class Features(object):
@@ -45,13 +49,12 @@ class Features(object):
         return feats
 
     def _title_or_content(self, data):
-        return list(itertools.chain(*data.apply(
+        return list(chain(*data.apply(
             lambda row: [1] * len(row['title_non_stop_words']) +
                         [0] * len(row['content_non_stop_words']),
             axis=1)))
 
     def _add_number_of_non_stop_words(self, data):
-        split_row = lambda row: [x for x in row.split() if x not in stop_words]
         data['title_non_stop_words'] = data['title'].apply(split_row)
         data['content_non_stop_words'] = data['content'].apply(split_row)
 
@@ -65,12 +68,12 @@ class Features(object):
                 if word not in stop_words:
                     features.append(question)
             return features[::-1]
-        return list(itertools.chain(*data['titlecontent'].apply(
+        return list(chain(*data['titlecontent'].apply(
             is_in_question
             )))
 
     def _times_word_in(self, data, column):
-        return list(itertools.chain(*data.apply(
+        return list(chain(*data.apply(
             lambda row: [row[column].split().count(word)
                          for word in row['titlecontent'].split()
                          if word not in stop_words], axis=1)
@@ -86,7 +89,7 @@ class Features(object):
         tf_idf_data = self.tf_idf_vectorizer.transform(train_data['titlecontent'])
         train_data['index'] = range(tf_idf_data.shape[0])
         voc = self.tf_idf_vectorizer.vocabulary_
-        features = list(itertools.chain(*train_data.apply(
+        features = list(chain(*train_data.apply(
             lambda row: [tf_idf_data[row['index'], voc.get(word)]
                          if voc.get(word) else (0 if not self.changes else 1)
                          for word in row['titlecontent'].split()
@@ -151,7 +154,8 @@ class Predictor(model.Predictor):
         line = 0
         for i in range(len(test_dataframe)):
             entry = test_dataframe[i:i+1]
-            words = [w for w in entry.titlecontent.values[0].split() if w not in stop_words]
+            words = [w for w in entry.titlecontent.values[0].split()
+                     if w not in stop_words]
             n_words = len(words)
             tag_predictions[line:line+n_words]
             line += n_words
@@ -181,7 +185,7 @@ class Predictor(model.Predictor):
     def _get_truths_per_word(self, train_data):
         truths = []
         for i, titlecontent in enumerate(train_data.titlecontent.values):
-            words = [w for w in titlecontent.split() if w not in stop_words]
+            words = (w for w in titlecontent.split() if w not in stop_words)
             tags = train_data.tags.values[i]
             truths.extend(w in tags for w in words)
         return truths
@@ -189,9 +193,8 @@ class Predictor(model.Predictor):
     def _predict_for_one_entry(self, entry):
         features = self.feature_creator.transform(entry)
         tag_predictions = self.classifier.predict(features)
-        words = [w for w in entry.titlecontent.values[0].split() if w not in stop_words]
-        predictions = set()
-        for pred, word in zip(tag_predictions, words):
-            if pred:
-                predictions.add(word)
+        words = [w for w in entry.titlecontent.values[0].split()
+                 if w not in stop_words]
+        predictions = {word for (pred, word) in zip(tag_predictions, words)
+                       if pred}
         return list(predictions)
