@@ -18,6 +18,7 @@ requirements: test_environment
 	pip install -r requirements.txt
 	pip install -e .
 	$(PYTHON_INTERPRETER) -c 'import nltk; nltk.download("punkt")'
+	$(PYTHON_INTERPRETER) -c 'import nltk; nltk.download("stopwords")'
 
 make_test:
 	@echo $(shell pwd)
