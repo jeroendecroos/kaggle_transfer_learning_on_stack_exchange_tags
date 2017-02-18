@@ -8,8 +8,10 @@ import logging
 from room007.models import train_and_predict
 from room007.models import model
 from room007.data import info
+from room007.logging import loggingmgr
 
-logger = logging.getLogger()
+loggingmgr.set_up()
+logger = logging.getLogger(__name__)
 
 
 class ArgumentParser(train_and_predict.ArgumentParser):
@@ -100,5 +102,4 @@ def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     main()

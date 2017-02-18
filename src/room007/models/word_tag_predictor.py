@@ -1,23 +1,25 @@
 # vim: set fileencoding=utf-8 :
 
 import itertools
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn import linear_model
-
-import nltk
+import logging
 import string
 
+logger = logging.getLogger(__name__)
+
+import nltk
+from sklearn import linear_model
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-from sklearn.linear_model import LogisticRegression
 
 from room007.models import model
 
 
-stop_words = nltk.corpus.stopwords.words('english') + [x for x in string.printable]
+stop_words = nltk.corpus.stopwords.words('english') + list(string.printable)
 
 
 class Features(object):
@@ -37,22 +39,21 @@ class Features(object):
                 self._times_word_in(data, 'content'),
                 self._is_in_question(data),
         ]
-     #   if self.changes:
+        #   if self.changes:
         features += [self._title_or_content(data)]
         feats = tuple(zip(*features))
         return feats
 
     def _title_or_content(self, data):
         return list(itertools.chain(*data.apply(
-            lambda row: [1] * len(row['title_non_stop_words']) + [0] * len(row['content_non_stop_words']),
+            lambda row: [1] * len(row['title_non_stop_words']) +
+                        [0] * len(row['content_non_stop_words']),
             axis=1)))
-
 
     def _add_number_of_non_stop_words(self, data):
         split_row = lambda row: [x for x in row.split() if x not in stop_words]
         data['title_non_stop_words'] = data['title'].apply(split_row)
         data['content_non_stop_words'] = data['content'].apply(split_row)
-
 
     def _is_in_question(self, data):
         def is_in_question(row):
@@ -75,13 +76,11 @@ class Features(object):
                          if word not in stop_words], axis=1)
             ))
 
-
     def _train_tf_idf_vectorizer(self, data):
         self.tf_idf_vectorizer = TfidfVectorizer(stop_words=stop_words)
         self.tf_idf_vectorizer.fit(data['titlecontent'])
         #if self.functional_test:
         #    self._write_example_it_idf_features(data)
-
 
     def _get_tf_idf_features_per_word(self, train_data):
         tf_idf_data = self.tf_idf_vectorizer.transform(train_data['titlecontent'])
@@ -94,7 +93,6 @@ class Features(object):
                          if word not in stop_words], axis=1)
             ))
         return features
-
 
     def _write_some_features(self, features, keys):
         with open('debug_files/feats_per_word', 'wt') as outstream:
@@ -141,11 +139,11 @@ class Predictor(model.Predictor):
         self.set_options(kwargs)
 
     def fit(self, train_data):
-        print('start fitting')
+        logger.info('start fitting')
         self._fit(train_data)
 
     def predict(self, test_dataframe):
-        print('start predicting')
+        logger.info('start predicting')
         predictions = []
         tag_predictions = self.classifier.predict(
                 self.feature_creator.transform(test_dataframe)
@@ -166,14 +164,16 @@ class Predictor(model.Predictor):
         return predictions
 
     def _fit(self, train_data):
-        print("get features")
         self.feature_creator = Features(changes=self.changes)
+        logger.info("fitting features")
         self.feature_creator.fit(train_data)
+        logger.info("transforming features")
         features = self.feature_creator.transform(train_data)
+        logger.info("getting truths")
         truths = self._get_truths_per_word(train_data)
-        print("learning")
+        logger.info("learning")
         self._learn(features, truths)
-        print("finished learning")
+        logger.info("finished learning")
 
     def _learn(self, features, truths):
         self.classifier.fit(features, truths)
@@ -195,4 +195,3 @@ class Predictor(model.Predictor):
             if pred:
                 predictions.add(word)
         return list(predictions)
-
