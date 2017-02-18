@@ -36,7 +36,7 @@ class Features(object):
         self._train_tf_idf_vectorizer(train_data)
 
     def transform(self, data):
-        self._add_number_of_non_stop_words(data)
+        self._add_texts_wo_stop_words(data)
         features = [
                 self._get_tf_idf_features_per_word(data),
                 self._times_word_in(data, 'title'),
@@ -54,9 +54,9 @@ class Features(object):
                         [0] * len(row['content_non_stop_words']),
             axis=1)))
 
-    def _add_number_of_non_stop_words(self, data):
-        data['title_non_stop_words'] = data['title'].apply(split_row)
-        data['content_non_stop_words'] = data['content'].apply(split_row)
+    def _add_texts_wo_stop_words(self, data):
+        for cmn in ('content', 'title', 'titlecontent'):
+            data[cmn + '_non_stop_words'] = data[cmn].apply(split_row)
 
     def _is_in_question(self, data):
         def is_in_question(row):
@@ -183,12 +183,11 @@ class Predictor(model.Predictor):
         self.classifier.fit(features, truths)
 
     def _get_truths_per_word(self, train_data):
-        truths = []
-        for i, titlecontent in enumerate(train_data.titlecontent.values):
-            words = (w for w in titlecontent.split() if w not in stop_words)
-            tags = train_data.tags.values[i]
-            truths.extend(w in tags for w in words)
-        return truths
+        tags_and_words = zip(train_data.tags.values,
+                             train_data.titlecontent_non_stop_words.values)
+        truths = chain.from_iterable(((word in tags) for word in words)
+                                     for tags, words in tags_and_words)
+        return list(truths)
 
     def _predict_for_one_entry(self, entry):
         features = self.feature_creator.transform(entry)
