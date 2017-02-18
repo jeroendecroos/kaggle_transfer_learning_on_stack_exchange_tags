@@ -34,11 +34,6 @@ class ArgumentParser(object):
         return args
 
 
-def get_arguments():
-    parser = ArgumentParser()
-    return parser.parse_args()
-
-
 def write_predictions(test_name, test_dataframe):
     filename = '{}.out.csv'.format(test_name)
     test_dataframe.to_csv(filename, columns=['id','tags'], index=False)
@@ -98,14 +93,13 @@ def cross_validate(predictor, train_data_frames):
 
 @time_function
 def main():
-    args = get_arguments()
+    args = ArgumentParser().parse_args()
     train_data_frames, test_data_frames = get_data(args.set_name)
     predictor = _create_predictor(args.model, args.args, args.kwargs)
     if args.eval:
         evaluate_on_test_data(predictor, train_data_frames, test_data_frames)
     else:
         cross_validate(predictor, train_data_frames)
-
 
 
 if __name__ == "__main__":

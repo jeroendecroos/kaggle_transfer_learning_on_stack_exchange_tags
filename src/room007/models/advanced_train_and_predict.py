@@ -20,11 +20,6 @@ class ArgumentParser(train_and_predict.ArgumentParser):
         self.parser.add_argument('--reduce-train-data', help='run with same amount of train data as speedteest, but full testset', action='store_true')
 
 
-def get_arguments():
-    parser = ArgumentParser()
-    return parser.parse_args()
-
-
 def write_predictions(test_name, test_dataframe):
     filename = '{}.out.csv'.format(test_name)
     test_dataframe.to_csv(filename, columns=['id','tags'], index=False)
@@ -85,7 +80,7 @@ def log_results(results):
 
 @train_and_predict.time_function
 def main():
-    args = get_arguments()
+    args = ArgumentParser().parse_args()
     train_data_frames, test_data_frames = _get_data(args)
     model_module = importlib.import_module(args.model)
     predictor_factory = model_module.Predictor
