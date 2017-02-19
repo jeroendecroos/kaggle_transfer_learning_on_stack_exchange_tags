@@ -33,6 +33,7 @@ class Features(object):
         self.functional_test = functional_test
         self.tf_idf_vectorizer = None
         self.changes = changes
+        self._changes_int = 1 if changes else 0
 
     def fit(self, train_data):
         self._train_tf_idf_vectorizer(train_data)
@@ -92,18 +93,29 @@ class Features(object):
     @time_function(True)
     def _get_tf_idf_features_per_word(self, train_data):
         logger.debug("vectorizing")
-        tf_idf_data = self.tf_idf_vectorizer.transform(train_data['titlecontent'])
+        tf_idf_data = self.tf_idf_vectorizer.transform(
+            train_data['titlecontent'])
         logger.debug("done vectorizing")
+        # XXX Why is this needed? I see pandas' Index is weirdly shuffled...
+        # why?
         train_data['index'] = range(tf_idf_data.shape[0])
         voc = self.tf_idf_vectorizer.vocabulary_
+
         logger.debug("listing features")
-        features = list(chain(*train_data.apply(
-            lambda row: [tf_idf_data[row['index'], voc.get(word)]
-                         if voc.get(word) else (0 if not self.changes else 1)
-                         for word in row['titlecontent'].split()
-                         if word not in stop_words], axis=1)
-            ))
+        train_recs = train_data.itertuples()
+        feats_per_q = (((tf_idf_data[rec.index, voc[word]]
+                         if word in voc else self._changes_int)
+                        for word in rec.titlecontent_non_stop_words)
+                       for rec in train_recs)
+        features = list(chain.from_iterable(feats_per_q))
+        # A alternative, less performant notation:
+        # features = list(chain.from_iterable(train_data.apply(
+        #     lambda row: [(tf_idf_data[row['index'], voc[word]]
+        #                   if word in voc else self._changes_int)
+        #                  for word in row['titlecontent_non_stop_words']],
+        #     axis=1)))
         logger.debug("done listing features")
+
         return features
 
     def _write_some_features(self, features, keys):
