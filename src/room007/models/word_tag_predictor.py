@@ -24,6 +24,11 @@ from room007.models.train_and_predict import time_function
 stop_words = (set(nltk.corpus.stopwords.words('english'))
               .union(string.printable))
 
+
+def identity(x):
+    return x
+
+
 def split_row(row):
     return [x for x in row.split() if x not in stop_words]
 
@@ -36,6 +41,7 @@ class Features(object):
         self._changes_int = 1 if changes else 0
 
     def fit(self, train_data):
+        self._add_texts_wo_stop_words(train_data)
         self._train_tf_idf_vectorizer(train_data)
 
     def transform(self, data):
@@ -59,7 +65,9 @@ class Features(object):
 
     def _add_texts_wo_stop_words(self, data):
         for cmn in ('content', 'title', 'titlecontent'):
-            data[cmn + '_non_stop_words'] = data[cmn].apply(split_row)
+            tokenized_cmn = cmn + '_non_stop_words'
+            if tokenized_cmn not in data:
+                data[tokenized_cmn] = data[cmn].apply(split_row)
 
     @time_function(True)
     def _is_in_question(self, data):
@@ -83,8 +91,9 @@ class Features(object):
             axis=1)))
 
     def _train_tf_idf_vectorizer(self, data):
-        self.tf_idf_vectorizer = TfidfVectorizer(stop_words=stop_words)
-        self.tf_idf_vectorizer.fit(data['titlecontent'])
+        self.tf_idf_vectorizer = TfidfVectorizer(preprocessor=identity,
+                                                 tokenizer=identity)
+        self.tf_idf_vectorizer.fit(data['titlecontent_non_stop_words'])
         #if self.functional_test:
         #    self._write_example_it_idf_features(data)
 
@@ -92,7 +101,7 @@ class Features(object):
     def _get_tf_idf_features_per_word(self, train_data):
         logger.debug("vectorizing")
         tf_idf_data = self.tf_idf_vectorizer.transform(
-            train_data['titlecontent'])
+            train_data['titlecontent_non_stop_words'])
         logger.debug("done vectorizing")
         # XXX Why is this needed? I see pandas' Index is weirdly shuffled...
         # why?
