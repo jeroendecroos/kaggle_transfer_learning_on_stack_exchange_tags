@@ -132,6 +132,10 @@ class OptionsSetter(model.OptionsSetter):
              }, 'True')
 
 
+def label_words(words, tags):
+    return ((word in tags) for word in words)
+
+
 class Predictor(model.Predictor):
     OptionsSetter = OptionsSetter
 
@@ -183,10 +187,16 @@ class Predictor(model.Predictor):
         self.classifier.fit(features, truths)
 
     def _get_truths_per_word(self, train_data):
-        tags_and_words = zip(train_data.tags.values,
-                             train_data.titlecontent_non_stop_words.values)
-        truths = chain.from_iterable(((word in tags) for word in words)
-                                     for tags, words in tags_and_words)
+        # labels_per_q = map(label_words,
+        #                    train_data.titlecontent_non_stop_words.values,
+        #                    train_data.tags.values)
+        labels_per_q = list(map((lambda ws, ts: (ws, ts, (w in ts for w in ws))),
+                           train_data.titlecontent_non_stop_words.values,
+                           train_data.tags.values))
+        logger.info("second iteration")
+        labels_per_q2 = map((lambda lab: (w in lab[1] for w in lab[0])),
+                            labels_per_q)
+        truths = chain.from_iterable(labels_per_q2)
         return list(truths)
 
     def _predict_for_one_entry(self, entry):
