@@ -18,6 +18,8 @@ from sklearn.tree import DecisionTreeClassifier
 
 from room007.models import model
 
+from room007.models.train_and_predict import time_function
+
 
 stop_words = (set(nltk.corpus.stopwords.words('english'))
               .union(string.printable))
@@ -58,6 +60,7 @@ class Features(object):
         for cmn in ('content', 'title', 'titlecontent'):
             data[cmn + '_non_stop_words'] = data[cmn].apply(split_row)
 
+    @time_function(True)
     def _is_in_question(self, data):
         def is_in_question(row):
             features = []
@@ -72,6 +75,7 @@ class Features(object):
             is_in_question
             )))
 
+    @time_function(True)
     def _times_word_in(self, data, column):
         return list(chain(*data.apply(
             lambda row: [row[column].split().count(word)
@@ -85,16 +89,21 @@ class Features(object):
         #if self.functional_test:
         #    self._write_example_it_idf_features(data)
 
+    @time_function(True)
     def _get_tf_idf_features_per_word(self, train_data):
+        logger.debug("vectorizing")
         tf_idf_data = self.tf_idf_vectorizer.transform(train_data['titlecontent'])
+        logger.debug("done vectorizing")
         train_data['index'] = range(tf_idf_data.shape[0])
         voc = self.tf_idf_vectorizer.vocabulary_
+        logger.debug("listing features")
         features = list(chain(*train_data.apply(
             lambda row: [tf_idf_data[row['index'], voc.get(word)]
                          if voc.get(word) else (0 if not self.changes else 1)
                          for word in row['titlecontent'].split()
                          if word not in stop_words], axis=1)
             ))
+        logger.debug("done listing features")
         return features
 
     def _write_some_features(self, features, keys):
@@ -187,16 +196,10 @@ class Predictor(model.Predictor):
         self.classifier.fit(features, truths)
 
     def _get_truths_per_word(self, train_data):
-        # labels_per_q = map(label_words,
-        #                    train_data.titlecontent_non_stop_words.values,
-        #                    train_data.tags.values)
-        labels_per_q = list(map((lambda ws, ts: (ws, ts, (w in ts for w in ws))),
+        labels_per_q = map(label_words,
                            train_data.titlecontent_non_stop_words.values,
-                           train_data.tags.values))
-        logger.info("second iteration")
-        labels_per_q2 = map((lambda lab: (w in lab[1] for w in lab[0])),
-                            labels_per_q)
-        truths = chain.from_iterable(labels_per_q2)
+                           train_data.tags.values)
+        truths = chain.from_iterable(labels_per_q)
         return list(truths)
 
     def _predict_for_one_entry(self, entry):

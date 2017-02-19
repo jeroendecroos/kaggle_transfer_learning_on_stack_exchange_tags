@@ -56,17 +56,20 @@ def _create_predictor(model, args, kwargs):
     return predictor
 
 
-def time_function(fun):
-    def timed_fun(*args, **kwargs):
-        logger.info('started at {}'.format(time.strftime('%H:%M:%S', time.gmtime())))
-        start_time = time.time()
-        returns = fun(*args, **kwargs)
-        end_time = time.time()
-        time_needed = end_time - start_time
-        logger.info('finished at {}'.format(time.strftime('%H:%M:%S', time.gmtime())))
-        logger.info("it took: {0:.0f} seconds".format(time_needed))
-        return returns, time_needed
-    return timed_fun
+# TODO Move to another module.
+def time_function(conservative=False):
+    def wrap(fun):
+        def wrapped(*args, **kwargs):
+            logger.info('called %s', fun.__name__)
+            start_time = time.time()
+            returns = fun(*args, **kwargs)
+            end_time = time.time()
+            time_needed = end_time - start_time
+            logger.info('returned from %s', fun.__name__)
+            logger.info("it took: {:.3f} s".format(time_needed))
+            return returns if conservative else (returns, time_needed)
+        return wrapped
+    return wrap
 
 
 def evaluate_on_test_data(predictor, train_data_frames, test_data_frames):
