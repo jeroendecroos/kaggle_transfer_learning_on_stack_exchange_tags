@@ -42,8 +42,8 @@ class Features(object):
         self._add_texts_wo_stop_words(data)
         features = [
                 self._get_tf_idf_features_per_word(data),
-                self._times_word_in(data, 'title'),
-                self._times_word_in(data, 'content'),
+                self._times_word_in(data, 'title_non_stop_words'),
+                self._times_word_in(data, 'content_non_stop_words'),
                 self._is_in_question(data),
         ]
         #   if self.changes:
@@ -72,17 +72,15 @@ class Features(object):
                 if word not in stop_words:
                     features.append(question)
             return features[::-1]
-        return list(chain.from_iterable(data['titlecontent'].apply(
-            is_in_question
-            )))
+        return list(chain.from_iterable(
+                        data['titlecontent'].apply(is_in_question)))
 
     @time_function(True)
     def _times_word_in(self, data, column):
         return list(chain.from_iterable(data.apply(
-            lambda row: [row[column].split().count(word)
-                         for word in row['titlecontent'].split()
-                         if word not in stop_words], axis=1)
-            ))
+            lambda row: [row[column].count(word)
+                         for word in row['titlecontent_non_stop_words']],
+            axis=1)))
 
     def _train_tf_idf_vectorizer(self, data):
         self.tf_idf_vectorizer = TfidfVectorizer(stop_words=stop_words)
