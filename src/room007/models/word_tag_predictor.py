@@ -108,12 +108,6 @@ class Features(object):
                         for word in rec.titlecontent_non_stop_words)
                        for rec in train_recs)
         features = list(chain.from_iterable(feats_per_q))
-        # A alternative, less performant notation:
-        # features = list(chain.from_iterable(train_data.apply(
-        #     lambda row: [(tf_idf_data[row['index'], voc[word]]
-        #                   if word in voc else self._changes_int)
-        #                  for word in row['titlecontent_non_stop_words']],
-        #     axis=1)))
         logger.debug("done listing features")
 
         return features
