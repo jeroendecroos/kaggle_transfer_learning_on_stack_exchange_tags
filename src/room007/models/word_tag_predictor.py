@@ -52,7 +52,7 @@ class Features(object):
         return feats
 
     def _title_or_content(self, data):
-        return list(chain(*data.apply(
+        return list(chain.from_iterable(data.apply(
             lambda row: [1] * len(row['title_non_stop_words']) +
                         [0] * len(row['content_non_stop_words']),
             axis=1)))
@@ -72,13 +72,13 @@ class Features(object):
                 if word not in stop_words:
                     features.append(question)
             return features[::-1]
-        return list(chain(*data['titlecontent'].apply(
+        return list(chain.from_iterable(data['titlecontent'].apply(
             is_in_question
             )))
 
     @time_function(True)
     def _times_word_in(self, data, column):
-        return list(chain(*data.apply(
+        return list(chain.from_iterable(data.apply(
             lambda row: [row[column].split().count(word)
                          for word in row['titlecontent'].split()
                          if word not in stop_words], axis=1)
