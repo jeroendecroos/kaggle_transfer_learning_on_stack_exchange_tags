@@ -20,10 +20,12 @@ def evaluate(expected, predicted):
                 reduce(set.union, predicted, set()))
     coder = MultiLabelBinarizer(sparse_output=True)
     coder.fit([all_tags])
-    return f1_score(coder.transform(expected),
-                    coder.transform(predicted),
-                    average='weighted')  # TODO Find what Jeroen intended by
-                                         # putting 'macro' here.
+    predicted_enc = coder.transform(predicted)
+    expected_enc = coder.transform(expected)
+
+    # this seems to co-relate with the official evaluation the best
+    return (f1_score(predicted_enc, expected_enc, average='weighted') +
+            f1_score(expected_enc, predicted_enc, average='weighted')) / 2
 
 
 def cross_validate(learner, frames):
