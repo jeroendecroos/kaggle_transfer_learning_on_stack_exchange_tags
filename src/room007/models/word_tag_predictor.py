@@ -1,5 +1,6 @@
 # vim: set fileencoding=utf-8 :
 
+from copy import deepcopy
 from itertools import chain
 import logging
 import string
@@ -28,8 +29,8 @@ def identity(x):
     return x
 
 
-def split_row(row):
-    return [x for x in row.split() if x not in stop_words]
+def tokenize(sentence):
+    return [token for token in sentence.split() if token not in stop_words]
 
 
 class Features(object):
@@ -38,13 +39,20 @@ class Features(object):
         self.tf_idf_vectorizer = None
         self.changes = changes
         self._changes_int = 1 if changes else 0
+        self._fit_data_id = None
 
     def fit(self, train_data):
-        self._add_texts_wo_stop_words(train_data)
-        self._train_tf_idf_vectorizer(train_data)
+        if self._fit_data_id != id(train_data):
+            data_cp = deepcopy(train_data)
+            self._add_texts_wo_stop_words(data_cp)
+            self._train_tf_idf_vectorizer(data_cp)
+            self._fit_data_id = id(data_cp)
 
     def transform(self, data):
-        self._add_texts_wo_stop_words(data)
+        # Make sure to have the data frame preprocessed exactly once.
+        if self._fit_data_id != id(data):
+            data = deepcopy(data)
+            self._add_texts_wo_stop_words(data)
         features = [
                 self._get_tf_idf_features_per_word(data),
                 self._times_word_in(data, 'title_non_stop_words'),
@@ -64,23 +72,23 @@ class Features(object):
 
     def _add_texts_wo_stop_words(self, data):
         for cmn in ('content', 'title', 'titlecontent'):
-            tokenized_cmn = cmn + '_non_stop_words'
-            if tokenized_cmn not in data:
-                data[tokenized_cmn] = data[cmn].apply(split_row)
+            data[cmn + '_non_stop_words'] = data[cmn].apply(tokenize)
+
+    @classmethod
+    def _is_in_question_per_row(cls, row):
+        features = []
+        question = 0
+        for word in row.split()[::-1]:
+            if word in '.:;!?':
+                question = int(word == '?')
+            if word not in stop_words:
+                features.append(question)
+        return features[::-1]
 
     @time_function(logger, True)
     def _is_in_question(self, data):
-        def is_in_question(row):
-            features = []
-            question = 0
-            for word in row.split()[::-1]:
-                if word in '.:;!?':
-                    question = int(word == '?')
-                if word not in stop_words:
-                    features.append(question)
-            return features[::-1]
-        return list(chain.from_iterable(
-                        data['titlecontent'].apply(is_in_question)))
+        return list(chain.from_iterable(data['titlecontent']
+                                        .apply(self._is_in_question_per_row)))
 
     @time_function(logger, True)
     def _times_word_in(self, data, column):
@@ -153,8 +161,8 @@ class OptionsSetter(model.OptionsSetter):
              }, 'True')
 
 
-def label_words(words, tags):
-    return ((word in tags) for word in words)
+def label_words(sentence, tags):
+    return ((word in tags) for word in tokenize(sentence))
 
 
 class Predictor(model.Predictor):
@@ -166,16 +174,21 @@ class Predictor(model.Predictor):
         self.changes = None
         self.set_options(kwargs)
 
+    @time_function(logger, True)
     def fit(self, train_data):
-        logger.info('start fitting')
-        self._fit(train_data)
+        self.feature_creator = Features(changes=self.changes)
+        logger.info("fitting features")
+        self.feature_creator.fit(train_data)
+        logger.info("transforming features")
+        features = self.feature_creator.transform(train_data)
+        truths = self._get_truths_per_word(train_data)
+        self._learn(features, truths)
 
     def predict(self, test_dataframe):
         logger.info('start predicting')
         predictions = []
         tag_predictions = self.classifier.predict(
-                self.feature_creator.transform(test_dataframe)
-                )
+                self.feature_creator.transform(test_dataframe))
         line = 0
         for i in range(len(test_dataframe)):
             entry = test_dataframe[i:i+1]
@@ -192,24 +205,14 @@ class Predictor(model.Predictor):
             predictions.append(prediction)
         return predictions
 
-    def _fit(self, train_data):
-        self.feature_creator = Features(changes=self.changes)
-        logger.info("fitting features")
-        self.feature_creator.fit(train_data)
-        logger.info("transforming features")
-        features = self.feature_creator.transform(train_data)
-        logger.info("getting truths")
-        truths = self._get_truths_per_word(train_data)
-        logger.info("learning")
-        self._learn(features, truths)
-        logger.info("finished learning")
-
+    @time_function(logger, True)
     def _learn(self, features, truths):
         self.classifier.fit(features, truths)
 
+    @time_function(logger, True)
     def _get_truths_per_word(self, train_data):
         labels_per_q = map(label_words,
-                           train_data.titlecontent_non_stop_words.values,
+                           train_data.titlecontent.values,
                            train_data.tags.values)
         truths = chain.from_iterable(labels_per_q)
         return list(truths)
