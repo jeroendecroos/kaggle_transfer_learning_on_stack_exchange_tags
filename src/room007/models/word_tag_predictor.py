@@ -17,8 +17,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 
 from room007.models import model
-
-from room007.models.train_and_predict import time_function
+from room007.util import time_function
 
 
 stop_words = (set(nltk.corpus.stopwords.words('english'))
@@ -69,7 +68,7 @@ class Features(object):
             if tokenized_cmn not in data:
                 data[tokenized_cmn] = data[cmn].apply(split_row)
 
-    @time_function(True)
+    @time_function(logger, True)
     def _is_in_question(self, data):
         def is_in_question(row):
             features = []
@@ -83,7 +82,7 @@ class Features(object):
         return list(chain.from_iterable(
                         data['titlecontent'].apply(is_in_question)))
 
-    @time_function(True)
+    @time_function(logger, True)
     def _times_word_in(self, data, column):
         return list(chain.from_iterable(data.apply(
             lambda row: [row[column].count(word)
@@ -97,7 +96,7 @@ class Features(object):
         #if self.functional_test:
         #    self._write_example_it_idf_features(data)
 
-    @time_function(True)
+    @time_function(logger, True)
     def _get_tf_idf_features_per_word(self, train_data):
         logger.debug("vectorizing")
         tf_idf_data = self.tf_idf_vectorizer.transform(

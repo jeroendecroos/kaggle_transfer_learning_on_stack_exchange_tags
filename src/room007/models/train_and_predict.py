@@ -10,6 +10,7 @@ import pandas as pandas
 
 from room007.eval import cross_validation
 from room007.data import info
+from room007.util import time_function
 
 logger = logging.getLogger()
 
@@ -56,22 +57,6 @@ def _create_predictor(model, args, kwargs):
     return predictor
 
 
-# TODO Move to another module.
-def time_function(conservative=False):
-    def wrap(fun):
-        def wrapped(*args, **kwargs):
-            logger.info('called %s', fun.__name__)
-            start_time = time.time()
-            returns = fun(*args, **kwargs)
-            end_time = time.time()
-            time_needed = end_time - start_time
-            logger.info('returned from %s', fun.__name__)
-            logger.info("it took: {:.3f} s".format(time_needed))
-            return returns if conservative else (returns, time_needed)
-        return wrapped
-    return wrap
-
-
 def evaluate_on_test_data(predictor, train_data_frames, test_data_frames):
     train_data = pandas.concat([data for _, data in train_data_frames.items()], ignore_index=True)
     predictor.fit(train_data)
@@ -94,7 +79,7 @@ def cross_validate(predictor, train_data_frames):
     return result
 
 
-@time_function
+@time_function(logger)
 def main():
     args = ArgumentParser().parse_args()
     train_data_frames, test_data_frames = get_data(args.set_name)

@@ -5,10 +5,10 @@ import re
 import importlib
 import logging
 
-from room007.models import train_and_predict
-from room007.models import model
 from room007.data import info
 from room007.logging import loggingmgr
+from room007.models import model, train_and_predict
+from room007.util import time_function
 
 loggingmgr.set_up()
 logger = logging.getLogger(__name__)
@@ -80,7 +80,7 @@ def log_results(results):
     logger.info('#################################################')
 
 
-@train_and_predict.time_function()
+@time_function(logger)
 def main():
     args = ArgumentParser().parse_args()
     train_data_frames, test_data_frames = _get_data(args)
@@ -95,7 +95,7 @@ def main():
         for name, options in options_setter.combinations(args.kwargs):
             logger.info('started cross_validation for {}'.format(name))
             predictor = predictor_factory(*args.args, **options)
-            result, time_needed = train_and_predict.time_function()(
+            result, time_needed = train_and_predict.time_function(logger)(
                 train_and_predict.cross_validate)(
                 predictor, train_data_frames)
             results.append((name, result, time_needed))
