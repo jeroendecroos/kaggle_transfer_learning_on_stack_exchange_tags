@@ -57,6 +57,12 @@ class ProcessedData(Data):
         self.data_dir = join(PROJECT_DIR, 'data', 'processed', name)
 
 
+class FeaturedData(Data):
+    def __init__(self, name):
+        super().__init__()
+        self.data_dir = join(PROJECT_DIR, 'data', 'features', name)
+
+
 def load_dataset(filepath, split_tags=True):
     frame = pandas.read_csv(filepath)
     if split_tags:

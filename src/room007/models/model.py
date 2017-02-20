@@ -4,7 +4,7 @@ import itertools
 
 class Option(object):
     def __init__(self, options, default):
-        self.choices = {}
+        self.choices = options
         self.default = default
 
 
@@ -29,7 +29,13 @@ class OptionsSetter(object):
         def option_combination_name(options):
             template = "|||" + "{}:{}&"*len(options) + " |||"
             return template.format(*itertools.chain(*options.items()))
-        option_choices = [option.choices.keys() for option in self.options.values()]
+        def subselection(option_name, option_choices):
+            if option_name not in arg_options:
+                return option_choices
+            else:
+                return [arg_options[option_name]]
+        option_choices = [subselection(option_name, option.choices.keys())
+                          for option_name, option in self.options.items()]
         option_combinations = [dict(zip(self.options.keys(), combination))
                                for combination in itertools.product(*option_choices)
                                ]
@@ -37,6 +43,27 @@ class OptionsSetter(object):
             return [(option_combination_name(combination), combination) for combination in option_combinations]
         else:
             return [('||| no parameter combinations |||', {option_name: option.default for option_name, option in self.options.items()})]
+
+
+def load_or_create(save=True):
+    def load_or_create(fun):
+        def _fun(self, data, *args, **kwargs):
+            if fun.__name__ in data:
+                features = data[fun.__name__].apply(lambda x: eval(x) if '[' in x else x)
+            else:
+                features = fun(self, data, *args, **kwargs)
+            if self.save:
+                data[fun.__name__] = features
+            return features
+        return _fun
+    return load_or_create
+
+
+class Features(object):
+    def save_features_to_dataframe(self, data):
+        self.save = True
+        self._get_data_independent_features(data)
+
 
 class Predictor(object):
     OptionsSetter = OptionsSetter
