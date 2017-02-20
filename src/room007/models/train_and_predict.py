@@ -10,6 +10,7 @@ import pandas as pandas
 
 from room007.eval import cross_validation
 from room007.data import info
+from room007.util import time_function
 
 logger = logging.getLogger()
 
@@ -34,11 +35,6 @@ class ArgumentParser(object):
         return args
 
 
-def get_arguments():
-    parser = ArgumentParser()
-    return parser.parse_args()
-
-
 def write_predictions(test_name, test_dataframe):
     filename = '{}.out.csv'.format(test_name)
     test_dataframe.to_csv(filename, columns=['id','tags'], index=False)
@@ -59,19 +55,6 @@ def _create_predictor(model, args, kwargs):
     predictor = predictor_factory(*args, **kwargs)
     logger.info('predictor created')
     return predictor
-
-
-def time_function(fun):
-    def timed_fun(*args, **kwargs):
-        logger.info('started at {}'.format(time.strftime('%H:%M:%S', time.gmtime())))
-        start_time = time.time()
-        returns = fun(*args, **kwargs)
-        end_time = time.time()
-        time_needed = end_time - start_time
-        logger.info('finished at {}'.format(time.strftime('%H:%M:%S', time.gmtime())))
-        logger.info("it took: {0:.0f} seconds".format(time_needed))
-        return returns, time_needed
-    return timed_fun
 
 
 def evaluate_on_test_data(predictor, train_data_frames, test_data_frames):
@@ -96,16 +79,15 @@ def cross_validate(predictor, train_data_frames):
     return result
 
 
-@time_function
+@time_function(logger)
 def main():
-    args = get_arguments()
+    args = ArgumentParser().parse_args()
     train_data_frames, test_data_frames = get_data(args.set_name)
     predictor = _create_predictor(args.model, args.args, args.kwargs)
     if args.eval:
         evaluate_on_test_data(predictor, train_data_frames, test_data_frames)
     else:
         cross_validate(predictor, train_data_frames)
-
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ from sklearn.preprocessing import MultiLabelBinarizer
 
 from room007.data import info
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 def evaluate(expected, predicted):
@@ -51,7 +51,7 @@ def cross_validate(learner, frames):
         logger.info('train set created')
         logger.info('learning on the train set')
         learner.fit(train_dataset)
-        logger.info('lerning complete')
+        logger.info('learning complete')
         logger.info('predicting on {}, test size is {}'.format(eval_name, len(eval_dataset)))
         predictions[eval_name] = learner.predict(eval_dataset)
         logger.info('done predicting')

@@ -21,6 +21,10 @@ Developing
   * First accepting rules on the site  
   * kg download -c transfer-learning-on-stack-exchange-tags -p <password> -u <username>  
 
+6) To preprocess the data: `src/room007/data/clean_dataset.py`
+
+7) To train models: `src/room007/models/advanced_train_and_predict.py`
+
 
 Project Organization
 ------------

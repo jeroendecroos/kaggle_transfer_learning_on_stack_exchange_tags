@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 # vim: set fileencoding=utf-8 :
 
-from bs4 import BeautifulSoup
-from room007.data import info
+# standard libraries
 import logging
 import re
-import nltk
 
 logger = logging.getLogger()
 logger.info('Logging works')
+
+# external libraries
+from bs4 import BeautifulSoup
+import nltk
+
+# our libraries
+from room007.data import info
 
 
 def strip_tags_and_uris(x):
@@ -29,7 +34,7 @@ def strip_tags_and_uris(x):
 def strip_latex_code(text):
     #if 'lecturer poses the question' in text:
     #    import pdb; pdb.set_trace()
-    return re.sub(r'\\[a-zA-Z/\-_0-9{}]{2,}', '', 
+    return re.sub(r'\\[a-zA-Z/\-_0-9{}]{2,}', '',
                 re.sub(r'(\$)?\$.*?\$(\$)?','', text))
 
 def remove_punctuation(x):
@@ -46,7 +51,7 @@ def remove_punctuation(x):
     # XXX By doing this, we also discard apostrophes, transforming words like
     # "don't" or "we'll" into non-words. We probably don't lose much important
     # information by doing this.
-    return x 
+    return x
     # TODO Normalize whitespace, e.g. newlines should be replaced with spaces
     # and whitespace then squeezed.
 
@@ -82,7 +87,6 @@ def main():
     data = info.get_test_dataframes(raw_info)
     clean_data(data)
     info.save_test_data(cleaned_info, data)
-
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)

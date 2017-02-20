@@ -5,11 +5,13 @@ import re
 import importlib
 import logging
 
-from room007.models import train_and_predict
-from room007.models import model
 from room007.data import info
+from room007.logging import loggingmgr
+from room007.models import model, train_and_predict
+from room007.util import time_function
 
-logger = logging.getLogger()
+loggingmgr.set_up()
+logger = logging.getLogger(__name__)
 
 
 class ArgumentParser(train_and_predict.ArgumentParser):
@@ -18,11 +20,6 @@ class ArgumentParser(train_and_predict.ArgumentParser):
         self.parser.add_argument('--test', help='run only on minimal part of data, to test functionality', action='store_true')
         self.parser.add_argument('--speedtest', help='run only on small part of data, but big enough for speed profiling', action='store_true')
         self.parser.add_argument('--reduce-train-data', help='run with same amount of train data as speedteest, but full testset', action='store_true')
-
-
-def get_arguments():
-    parser = ArgumentParser()
-    return parser.parse_args()
 
 
 def write_predictions(test_name, test_dataframe):
@@ -83,9 +80,9 @@ def log_results(results):
     logger.info('#################################################')
 
 
-@train_and_predict.time_function
+@time_function(logger)
 def main():
-    args = get_arguments()
+    args = ArgumentParser().parse_args()
     train_data_frames, test_data_frames = _get_data(args)
     model_module = importlib.import_module(args.model)
     predictor_factory = model_module.Predictor
@@ -98,12 +95,12 @@ def main():
         for name, options in options_setter.combinations(args.kwargs):
             logger.info('started cross_validation for {}'.format(name))
             predictor = predictor_factory(*args.args, **options)
-            result, time_needed = train_and_predict.time_function(
-                    train_and_predict.cross_validate)(predictor, train_data_frames)
+            result, time_needed = train_and_predict.time_function(logger)(
+                train_and_predict.cross_validate)(
+                predictor, train_data_frames)
             results.append((name, result, time_needed))
         log_results(results)
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     main()
