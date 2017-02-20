@@ -1,19 +1,14 @@
 #!/usr/bin/env python3
 # vim: set fileencoding=utf-8 :
 
-import collections
+from bs4 import BeautifulSoup
+from room007.data import info
 import logging
 import re
-import string
+import nltk
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 logger.info('Logging works')
-
-from bs4 import BeautifulSoup
-
-from room007.data import info
-import nltk
 
 
 def strip_tags_and_uris(x):
@@ -62,10 +57,9 @@ def clean_data(dataframes):
         print(name)
         df["content"] = df["content"].map(strip_tags_and_uris)
         df["content"] = df["content"].map(strip_latex_code)
-# We can also keep punctuation because it can give NLP information
+        # We can also keep punctuation because it can give NLP information
         df["title"] = df["title"].map(remove_punctuation)
         df["content"] = df["content"].map(remove_punctuation)
-
 
 
 def save_data(data):
@@ -76,20 +70,20 @@ def save_data(data):
 
 
 def main():
-    data_info = info.RawData()
+    raw_info = info.RawData()
+    cleaned_info = info.CleanedData()
     # XXX Do not split tags because this would only result in storing what was
     # a space-separated list using a Python list syntax, thereby requiring
     # re-parsing it as Python on next load.
-    data = info.get_train_dataframes(data_info, split_tags=False)
+    data = info.get_train_dataframes(raw_info, split_tags=False)
     clean_data(data)
-    data_info = info.CleanedData()
-    info.save_training_data(data_info, data)
-    data = info.get_test_dataframes(data_info)
-    clean_data(data)
-    data_info = info.CleanedData()
-    info.save_test_data(data_info, data)
+    info.save_training_data(cleaned_info, data)
 
+    data = info.get_test_dataframes(raw_info)
+    clean_data(data)
+    info.save_test_data(cleaned_info, data)
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     main()

@@ -1,82 +1,75 @@
-#!/usr/bin/env python3
 # vim: set fileencoding=utf-8 :
 
-import collections
-
 import itertools
-from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn import naive_bayes
 from sklearn import linear_model
 
-import spacy
-nlp = spacy.load('en')
 
 from pandas import DataFrame
 import nltk
 import string
+
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.linear_model import LogisticRegression
+
+from room007.models import model
+from room007.data import info
+
+import spacy
+#nlp = spacy.load('en')
+
 stop_words = nltk.corpus.stopwords.words('english') + [x for x in string.printable]
 
 
-
-
-class Features(object):
+class Features(model.Features):
     def __init__(self, functional_test=False, changes=False):
         self.functional_test = functional_test
         self.tf_idf_vectorizer = None
         self.changes = changes
-        self.feature_dir = 'data/features'
-
-    def load_or_create_feature(self, fun, feature_name, optional_save=False):
-        def _fun(data, *args, **kwargs):
-            feature_location = os.path.join(self.feature_dir, feature_name)
-            if os.path.exist(feature_location):
-                features = self._load_features(data['id'], feature_location)
-            else:
-                features = fun(data, *args, **kwargs)
-                if optional_save:
-                    self._save_features(data, features)
-            return features
-        return _fun
-
-    def _load_features(self, ids, filepath):
-        iter_csv = pandas.read_csv(filepath, iterator=True, chunksize=1000)
-        dataframe = pandas.concat([chunk[chunk['id'] in ids] for chunk in iter_csv])
-
-    def _save_features(self, data, features):
-        features = deque(features)
-        data['features'] = data.apply(lambda row:
-                [features.popleft() for _ in range(len(row['title_non_stop_words'])+len(row['content_non_stop_words']))],
-            axis=1)
-        pass
+        self.save = False
 
     def fit(self, train_data):
         self._train_tf_idf_vectorizer(train_data)
 
     def transform(self, data):
+        features = self._get_features_per_row(data)
+        for i, feat in enumerate(features):
+            features[i] = list(itertools.chain(*feat))
+        feats = tuple(zip(*features))
+        return feats
+
+    def _get_features_per_row(self, data):
+        features = self._get_data_independent_features(data)
+        features.append(self._get_tf_idf_features_per_word(data))
+        #if self.changes:
+        #    s_feats = [self._title_or_content(data)]
+        #    s_feats = self._spacy_features(data)
+        #    features.extend(s_feats)
+        return features
+
+    def _get_data_independent_features(self, data):
         self._add_number_of_non_stop_words(data)
-        features = [
-                self._get_tf_idf_features_per_word(data),
+        return [
                 self._times_word_in(data, 'title'),
                 self._times_word_in(data, 'content'),
                 self._is_in_question(data),
                 self._title_or_content(data),
         ]
-        if self.changes:
-            s_feats = self._spacy_features(data)
-            features.extend(s_feats)
-        feats = tuple(zip(*features))
-        return feats
 
     def _spacy_features(self, data):
-        return [[x for x in itertools.chain(*data.apply(
-            lambda row: [tags.pos_ == "NOUN" for word, tags in zip(row['titlecontent'].split(), nlp(row['titlecontent'])) if word not in stop_words],
-            axis=1))]]
+        return [data.apply(
+            lambda row: [int(tags.pos_ == "NOUN") for word, tags in zip(row['titlecontent'].split(), nlp(row['titlecontent'])) if word not in stop_words],
+            axis=1)]
 
+    @model.load_or_create(save=True)
     def _title_or_content(self, data):
-        return list(itertools.chain(*data.apply(
+        return data.apply(
             lambda row: [1] * len(row['title_non_stop_words']) + [0] * len(row['content_non_stop_words']),
-            axis=1)))
+            axis=1)
 
 
     def _add_number_of_non_stop_words(self, data):
@@ -95,16 +88,16 @@ class Features(object):
                 if word not in stop_words:
                     features.append(question)
             return features[::-1]
-        return list(itertools.chain(*data['titlecontent'].apply(
+        return data['titlecontent'].apply(
             is_in_question
-            )))
+            )
 
     def _times_word_in(self, data, column):
-        return list(itertools.chain(*data.apply(
+        return data.apply(
             lambda row: [row[column].split().count(word)
                          for word in row['titlecontent'].split()
-                         if word not in stop_words], axis=1)
-            ))
+                         if word not in stop_words],
+            axis=1)
 
 
     def _train_tf_idf_vectorizer(self, data):
@@ -118,12 +111,12 @@ class Features(object):
         tf_idf_data = self.tf_idf_vectorizer.transform(train_data['titlecontent'])
         train_data['index'] = range(tf_idf_data.shape[0])
         voc = self.tf_idf_vectorizer.vocabulary_
-        features = list(itertools.chain(*train_data.apply(
+        features = train_data.apply(
             lambda row: [tf_idf_data[row['index'], voc.get(word)]
                          if voc.get(word) else 1
                          for word in row['titlecontent'].split()
-                         if word not in stop_words], axis=1)
-            ))
+                         if word not in stop_words],
+            axis=1)
         return features
 
 
@@ -134,13 +127,36 @@ class Features(object):
                 outstream.write(','.join(f for f in feat) + '\n')
 
 
-class Predictor(object):
-    def __init__(self, functional_test=False, classifier=None, changes=False):
-        if classifier == None:
-            classifier = linear_model.LogisticRegression(class_weight='balanced')
-        self.classifier = classifier
-        self.functional_test = functional_test
-        self.changes = changes
+class OptionsSetter(model.OptionsSetter):
+    def __init__(self):
+        self.options = {}
+        self.options['classifier'] = model.Option(
+            {#"Nearest Neighbors": KNeighborsClassifier(3),
+             # "Linear SVM": SVC(kernel="linear", C=0.025),
+             # "RBF SVM": SVC(gamma=2, C=1),
+             # "Gaussian Process":  GaussianProcessClassifier(1.0 * RBF(1.0), warm_start=True), # too slow?
+             # "Decision Tree": DecisionTreeClassifier(max_depth=5),
+             # "Random Forest": RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
+             # "Neural Net": MLPClassifier(alpha=1),
+             # "AdaBoost": AdaBoostClassifier(),
+             "Naive Bayes": GaussianNB(),
+             "Logistic Regression": LogisticRegression(class_weight='balanced'),
+             "QDA": QuadraticDiscriminantAnalysis()
+             }, "Logistic Regression")
+        self.options['changes'] = model.Option(
+            {'True': True,
+             'False': False,
+             }, 'True')
+
+
+class Predictor(model.Predictor):
+    OptionsSetter = OptionsSetter
+
+    def __init__(self, *args, **kwargs):
+        self.functional_test = kwargs.get('functional-test', False)
+        self.classifier = None
+        self.changes = None
+        self.set_options(kwargs)
 
     def fit(self, train_data):
         print('start fitting')
