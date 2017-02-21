@@ -8,6 +8,7 @@ import logging
 from room007.data import info
 from room007.logging import loggingmgr
 from room007.models import model, train_and_predict
+from room007.preprocessing import preprocess
 from room007.util import time_function
 
 loggingmgr.set_up()
@@ -27,21 +28,6 @@ def write_predictions(test_name, test_dataframe):
     test_dataframe.to_csv(filename, columns=['id','tags'], index=False)
 
 
-def remove_numbers(text):
-    return re.sub('[0-9]', '', text)
-
-
-def do_extra_cleaning(data):
-    data['titlecontent'] = data['titlecontent'].map(remove_numbers)
-    data['title'] = data['title'].map(remove_numbers)
-    data['content'] = data['content'].map(remove_numbers)
-
-
-def apply_preprocessing(data):
-    data['titlecontent'] = data['title'] + ' ' + data['content']
-    do_extra_cleaning(data)
-
-
 def sample_dataframes(dataframes, size):
     new_dataframes = {}
     for fname, data in sorted(dataframes.items()):
@@ -59,7 +45,7 @@ def _get_data(args):
             size = _get_sample_size(args.test)
             dataframes = sample_dataframes(dataframes, size)
         for _, data in sorted(dataframes.items()):
-            apply_preprocessing(data)
+            preprocess(data)
         return dataframes
     data_info = info.CleanedData()
     train_data_frames, test_data_frames = train_and_predict.get_data(args.set_name)
