@@ -140,16 +140,23 @@ def label_words(words, tags):
 
 
 class Predictor(model.Predictor):
-    OptionsSetter = OptionsSetter
 
-    def __init__(self, *args, **kwargs):
-        self.functional_test = kwargs.get('functional-test', False)
+    def __init__(self, options):
         self.classifier = None
         self.changes = None
-        self.set_options(kwargs)
+        super(Predictor, self).__init__(options)
+
+    def get_options(self):
+        return OptionsSetter()
+
+    def set_options(self, options):
+        self.functional_test = options.get('functional-test', False)
+        self.label_fun = options.get('label-fun', label_words)
+        return super(Predictor, self).set_options(options)
 
     @time_function(logger, True)
     def fit(self, train_data):
+        # TODO Verify that options have been set.
         self.feature_creator = Features(changes=self.changes)
         logger.info("fitting features")
         self.feature_creator.fit(train_data)
@@ -184,7 +191,7 @@ class Predictor(model.Predictor):
 
     @time_function(logger, True)
     def _get_truths_per_word(self, train_data):
-        labels_per_q = map(label_words,
+        labels_per_q = map(self.label_fun,
                            train_data.titlecontent_non_stop_words.values,
                            train_data.tags.values)
         truths = chain.from_iterable(labels_per_q)

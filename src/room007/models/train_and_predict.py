@@ -8,29 +8,41 @@ import logging
 
 import pandas as pandas
 
-from room007.eval import cross_validation
 from room007.data import info
+from room007.eval import cross_validation
+from room007.models.model import create_predictor
 from room007.util import time_function
 
 logger = logging.getLogger()
 
 
-class ArgumentParser(object):
+class ArgumentParser(argparse.ArgumentParser):
     def __init__(self):
-        parser = argparse.ArgumentParser(description='Predict with a model.')
-        parser.add_argument('-e', '--eval', help='apply to the test data', action='store_true')
-        parser.add_argument('-n', '--set-name', default='../interim',
-                help='name of the pre-processed data set')
-        parser.add_argument('-m', '--model', default='word_tag_predictor',
-                help=('the name of the model to train and test, '
-                      'should be an importable module containing a Predictor class'))
-        parser.add_argument('-a', '--args', nargs='*', default=[],
-                help='arguments passed to the constructor of Predictor, values with ":" are considered kwargs')
-        self.parser = parser
+        super(ArgumentParser, self).__init__(
+            description='Predict with a model.')
+        self.add_argument('-e', '--eval',
+                          help='apply to the test data',
+                          action='store_true')
+        self.add_argument('-n', '--set-name',
+                          default='../interim',
+                          help='name of the pre-processed data set')
+        self.add_argument('-m', '--model',
+                          default='word_tag_predictor',
+                          help='the name of the model to train and test, '
+                               'should be an importable module containing a '
+                               'Predictor class')
+        self.add_argument('-a', '--args',
+                          nargs='*',
+                          default=[],
+                          help='Arguments passed to the constructor of '
+                               'Predictor. Values with ":" are considered '
+                               'kwargs, others are ignored.')
 
     def parse_args(self):
-        args = self.parser.parse_args()
-        args.kwargs = dict(arg.split(':') for arg in args.args)
+        args = super(ArgumentParser, self).parse_args()
+        args.kwargs = dict(arg.split(':', 1)
+                           for arg in args.args
+                           if ':' in arg)
         args.args = [arg for arg in args.args if ':' not in arg]
         return args
 
@@ -47,14 +59,6 @@ def get_data(set_name):
     test_data_frames = info.get_test_dataframes(processed_info)
     logger.info('data loaded')
     return train_data_frames, test_data_frames
-
-
-def _create_predictor(model, args, kwargs):
-    logger.info('creating predictor')
-    predictor_factory = importlib.import_module(model).Predictor
-    predictor = predictor_factory(*args, **kwargs)
-    logger.info('predictor created')
-    return predictor
 
 
 def evaluate_on_test_data(predictor, train_data_frames, test_data_frames):
@@ -83,7 +87,7 @@ def cross_validate(predictor, train_data_frames):
 def main():
     args = ArgumentParser().parse_args()
     train_data_frames, test_data_frames = get_data(args.set_name)
-    predictor = _create_predictor(args.model, args.args, args.kwargs)
+    _, predictor = create_predictor(args.model, args.args, args.kwargs)
     if args.eval:
         evaluate_on_test_data(predictor, train_data_frames, test_data_frames)
     else:

@@ -18,9 +18,18 @@ logger = logging.getLogger(__name__)
 class ArgumentParser(train_and_predict.ArgumentParser):
     def __init__(self):
         train_and_predict.ArgumentParser.__init__(self)
-        self.parser.add_argument('--test', help='run only on minimal part of data, to test functionality', action='store_true')
-        self.parser.add_argument('--speedtest', help='run only on small part of data, but big enough for speed profiling', action='store_true')
-        self.parser.add_argument('--reduce-train-data', help='run with same amount of train data as speedteest, but full testset', action='store_true')
+        self.add_argument('--test',
+                          help='run only on minimal part of data, to test '
+                               'functionality',
+                          action='store_true')
+        self.add_argument('--speedtest',
+                          help='run only on small part of data, but big '
+                               'enough for speed profiling',
+                          action='store_true')
+        self.add_argument('--reduce-train-data',
+                          help='run with same amount of train data as '
+                               'speedteest, but full testset',
+                          action='store_true')
 
 
 def sample_dataframes(dataframes, size):
@@ -65,17 +74,21 @@ def log_results(results):
 def main():
     args = ArgumentParser().parse_args()
     train_data_frames, test_data_frames = _get_data(args)
-    model_module = importlib.import_module(args.model)
-    predictor_factory = model_module.Predictor
+    # model_module = importlib.import_module(args.model)
+    # predictor_factory = model_module.Predictor
+    predictor_class, predictor = (
+        model.create_predictor(args.model, kwargs=args.kwargs))
     if args.eval:
-        predictor = predictor_factory(*args.args, **args.kwargs)
-        train_and_predict.evaluate_on_test_data(predictor, train_data_frames, test_data_frames)
+        # predictor = predictor_factory(*args.args, **args.kwargs)
+        train_and_predict.evaluate_on_test_data(predictor,
+                                                train_data_frames,
+                                                test_data_frames)
     else:
         results = []
-        options_setter = getattr(model_module, "OptionsSetter", model.OptionsSetter)()
+        options_setter = predictor.get_options()
         for name, options in options_setter.combinations(args.kwargs):
-            logger.info('started cross_validation for {}'.format(name))
-            predictor = predictor_factory(*args.args, **options)
+            logger.info('started cross_validation for %s', name)
+            predictor = predictor_class(options)
             result, time_needed = time_function(logger)(
                 train_and_predict.cross_validate)(
                 predictor, train_data_frames)
