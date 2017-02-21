@@ -18,19 +18,12 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 
 from room007.models import model
+from room007.preprocessing import STOP_WORDS, tokenize
 from room007.util import time_function
-
-
-stop_words = (set(nltk.corpus.stopwords.words('english'))
-              .union(string.printable))
 
 
 def identity(x):
     return x
-
-
-def tokenize(sentence):
-    return [token for token in sentence.split() if token not in stop_words]
 
 
 class Features(object):
@@ -44,7 +37,6 @@ class Features(object):
     def fit(self, train_data):
         if self._fit_data_id != id(train_data):
             data_cp = deepcopy(train_data)
-            self._add_texts_wo_stop_words(data_cp)
             self._train_tf_idf_vectorizer(data_cp)
             self._fit_data_id = id(data_cp)
 
@@ -52,7 +44,6 @@ class Features(object):
         # Make sure to have the data frame preprocessed exactly once.
         if self._fit_data_id != id(data):
             data = deepcopy(data)
-            self._add_texts_wo_stop_words(data)
         features = [
                 self._get_tf_idf_features_per_word(data),
                 self._times_word_in(data, 'title_non_stop_words'),
@@ -70,10 +61,6 @@ class Features(object):
                         [0] * len(row['content_non_stop_words']),
             axis=1)))
 
-    def _add_texts_wo_stop_words(self, data):
-        for cmn in ('content', 'title', 'titlecontent'):
-            data[cmn + '_non_stop_words'] = data[cmn].apply(tokenize)
-
     @classmethod
     def _is_in_question_per_row(cls, row):
         features = []
@@ -81,7 +68,7 @@ class Features(object):
         for word in row.split()[::-1]:
             if word in '.:;!?':
                 question = int(word == '?')
-            if word not in stop_words:
+            if word not in STOP_WORDS:
                 features.append(question)
         return features[::-1]
 
@@ -161,8 +148,8 @@ class OptionsSetter(model.OptionsSetter):
              }, 'True')
 
 
-def label_words(sentence, tags):
-    return ((word in tags) for word in tokenize(sentence))
+def label_words(words, tags):
+    return ((word in tags) for word in words)
 
 
 class Predictor(model.Predictor):
@@ -192,8 +179,7 @@ class Predictor(model.Predictor):
         line = 0
         for i in range(len(test_dataframe)):
             entry = test_dataframe[i:i+1]
-            words = [w for w in entry.titlecontent.values[0].split()
-                     if w not in stop_words]
+            words = tokenize(entry.titlecontent.values[0])
             n_words = len(words)
             tag_predictions[line:line+n_words]
             line += n_words
@@ -212,7 +198,7 @@ class Predictor(model.Predictor):
     @time_function(logger, True)
     def _get_truths_per_word(self, train_data):
         labels_per_q = map(label_words,
-                           train_data.titlecontent.values,
+                           train_data.titlecontent_non_stop_words.values,
                            train_data.tags.values)
         truths = chain.from_iterable(labels_per_q)
         return list(truths)
@@ -220,8 +206,7 @@ class Predictor(model.Predictor):
     def _predict_for_one_entry(self, entry):
         features = self.feature_creator.transform(entry)
         tag_predictions = self.classifier.predict(features)
-        words = [w for w in entry.titlecontent.values[0].split()
-                 if w not in stop_words]
+        words = tokenize(entry.titlecontent.values[0])
         predictions = {word for (pred, word) in zip(tag_predictions, words)
                        if pred}
         return list(predictions)
