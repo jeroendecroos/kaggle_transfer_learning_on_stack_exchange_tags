@@ -81,7 +81,7 @@ def main():
         for name, options in options_setter.combinations(args.kwargs):
             logger.info('started cross_validation for {}'.format(name))
             predictor = predictor_factory(*args.args, **options)
-            result, time_needed = train_and_predict.time_function(logger)(
+            result, time_needed = time_function(logger)(
                 train_and_predict.cross_validate)(
                 predictor, train_data_frames)
             results.append((name, result, time_needed))
