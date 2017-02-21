@@ -32,18 +32,11 @@ class Features(object):
         self.tf_idf_vectorizer = None
         self.changes = changes
         self._changes_int = 1 if changes else 0
-        self._fit_data_id = None
 
     def fit(self, train_data):
-        if self._fit_data_id != id(train_data):
-            data_cp = deepcopy(train_data)
-            self._train_tf_idf_vectorizer(data_cp)
-            self._fit_data_id = id(data_cp)
+        self._train_tf_idf_vectorizer(train_data)
 
     def transform(self, data):
-        # Make sure to have the data frame preprocessed exactly once.
-        if self._fit_data_id != id(data):
-            data = deepcopy(data)
         features = [
                 self._get_tf_idf_features_per_word(data),
                 self._times_word_in(data, 'title_non_stop_words'),
