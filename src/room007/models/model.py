@@ -4,7 +4,7 @@ from itertools import chain, product
 
 class Option(object):
     def __init__(self, options, default):
-        self.choices = {}
+        self.choices = options
         self.default = default
 
 
@@ -23,8 +23,9 @@ class OptionsSetter(object):
             setattr(instance, option_name, option_value)
 
     def combinations(self, arg_options):
-        """ get all combinations of all options possible, filtered with arg_options
-        for the moment filtering is not implemented
+        """\
+        Gets all combinations of all options possible, filtered with
+        arg_options.
 
         :param Mapping arg_options: mapping from option names to values, to
             which the combinations should be filtered
@@ -47,7 +48,9 @@ class OptionsSetter(object):
                     for combination in filtered]
         else:
             return [('||| no parameter combinations |||',
-                     {option_name: option.default for option_name, option in self.options.items()})]
+                     {option_name: option.default
+                      for option_name, option in self.options.items()})]
+
 
 class Predictor(object):
     OptionsSetter = OptionsSetter
@@ -66,4 +69,3 @@ class Predictor(object):
         print('start predicting')
         predictions = [[''] for _ in range(test_dataframe)]
         return predictions
-

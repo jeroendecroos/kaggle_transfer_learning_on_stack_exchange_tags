@@ -113,16 +113,10 @@ class Features(object):
                 outstream.write(','.join(f for f in feat) + '\n')
 
 
-class Option(object):
-    def __init__(self, options, default):
-        self.choices = options
-        self.default = default
-
-
 class OptionsSetter(model.OptionsSetter):
     def __init__(self):
         self.options = {}
-        self.options['classifier'] = Option(
+        self.options['classifier'] = model.Option(
             {"Nearest Neighbors": KNeighborsClassifier(3),
              # "Linear SVM": SVC(kernel="linear", C=0.025),
              # "RBF SVM": SVC(gamma=2, C=1),
@@ -135,7 +129,7 @@ class OptionsSetter(model.OptionsSetter):
              "Logistic Regression": LogisticRegression(class_weight='balanced'),
              "QDA": QuadraticDiscriminantAnalysis()
              }, "Logistic Regression")
-        self.options['changes'] = Option(
+        self.options['changes'] = model.Option(
             {'True': True,
              'False': False,
              }, 'True')
