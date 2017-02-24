@@ -24,6 +24,40 @@ import spacy
 
 stop_words = nltk.corpus.stopwords.words('english') + [x for x in string.printable]
 
+@model.FeatureManager
+def _is_in_question(data):
+    def is_in_question(row):
+        features = []
+        question = 0
+        for word in row.split()[::-1]:
+            if word in '.:;!?':
+                question = int(word == '?')
+            if word not in stop_words:
+                features.append(question)
+        return features[::-1]
+    return data['titlecontent'].apply(
+        is_in_question
+        )
+
+@model.FeatureManager
+def _title_or_content(data):
+    return data.apply(
+        lambda row: [1] * len(row['title_non_stop_words']) + [0] * len(row['content_non_stop_words']),
+        axis=1)
+
+
+def _add_number_of_non_stop_words(data):
+    split_row = lambda row: [x for x in row.split() if x not in stop_words]
+    data['title_non_stop_words'] = data['title'].apply(split_row)
+    data['content_non_stop_words'] = data['content'].apply(split_row)
+
+@model.FeatureManager
+def _times_word_in(data, column):
+    return data.apply(
+        lambda row: [row[column].split().count(word)
+                     for word in row['titlecontent'].split()
+                     if word not in stop_words],
+        axis=1)
 
 class Features(model.Features):
     def __init__(self, functional_test=False, changes=False):
@@ -52,12 +86,12 @@ class Features(model.Features):
         return features
 
     def _get_data_independent_features(self, data):
-        self._add_number_of_non_stop_words(data)
+        _add_number_of_non_stop_words(data)
         return [
-                self._times_word_in(data, 'title'),
-                self._times_word_in(data, 'content'),
-                self._is_in_question(data),
-                self._title_or_content(data),
+                _times_word_in(data, 'title'),
+                _times_word_in(data, 'content'),
+                _is_in_question(data),
+                _title_or_content(data),
         ]
 
     def _spacy_features(self, data):
@@ -65,47 +99,11 @@ class Features(model.Features):
             lambda row: [int(tags.pos_ == "NOUN") for word, tags in zip(row['titlecontent'].split(), nlp(row['titlecontent'])) if word not in stop_words],
             axis=1)]
 
-    @model.load_or_create(save=True)
-    def _title_or_content(self, data):
-        return data.apply(
-            lambda row: [1] * len(row['title_non_stop_words']) + [0] * len(row['content_non_stop_words']),
-            axis=1)
-
-
-    def _add_number_of_non_stop_words(self, data):
-        split_row = lambda row: [x for x in row.split() if x not in stop_words]
-        data['title_non_stop_words'] = data['title'].apply(split_row)
-        data['content_non_stop_words'] = data['content'].apply(split_row)
-
-
-    def _is_in_question(self, data):
-        def is_in_question(row):
-            features = []
-            question = 0
-            for word in row.split()[::-1]:
-                if word in '.:;!?':
-                    question = int(word == '?')
-                if word not in stop_words:
-                    features.append(question)
-            return features[::-1]
-        return data['titlecontent'].apply(
-            is_in_question
-            )
-
-    def _times_word_in(self, data, column):
-        return data.apply(
-            lambda row: [row[column].split().count(word)
-                         for word in row['titlecontent'].split()
-                         if word not in stop_words],
-            axis=1)
-
-
     def _train_tf_idf_vectorizer(self, data):
         self.tf_idf_vectorizer = TfidfVectorizer(stop_words=stop_words)
         self.tf_idf_vectorizer.fit(data['titlecontent'])
         #if self.functional_test:
         #    self._write_example_it_idf_features(data)
-
 
     def _get_tf_idf_features_per_word(self, train_data):
         tf_idf_data = self.tf_idf_vectorizer.transform(train_data['titlecontent'])
@@ -118,7 +116,6 @@ class Features(model.Features):
                          if word not in stop_words],
             axis=1)
         return features
-
 
     def _write_some_features(self, features, keys):
         with open('debug_files/feats_per_word', 'wt') as outstream:

@@ -12,9 +12,9 @@ args = advanced_train_and_predict.get_arguments()
 train_dataframes, test_dataframes = advanced_train_and_predict._get_data(args)
 data_info = info.FeaturedData(name="simple")
 feature_creator = word_tag_predictor.Features()
-feature_creator.save = True
 for name, dataframe in train_dataframes.items():
     feature_creator.save_features_to_dataframe(dataframe)
+    dataframe['tags'] = dataframe.apply(lambda row: ' '.join(row['tags']), axis=1)
 info.save_training_data(data_info, train_dataframes)
 if test_dataframes:
     for name, dataframe in test_dataframes.items():

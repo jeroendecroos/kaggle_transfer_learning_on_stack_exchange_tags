@@ -45,24 +45,40 @@ class OptionsSetter(object):
             return [('||| no parameter combinations |||', {option_name: option.default for option_name, option in self.options.items()})]
 
 
-def load_or_create(save=True):
-    def load_or_create(fun):
-        def _fun(self, data, *args, **kwargs):
-            if fun.__name__ in data:
-                features = data[fun.__name__].apply(lambda x: eval(x) if '[' in x else x)
-            else:
-                features = fun(self, data, *args, **kwargs)
-            if self.save:
-                data[fun.__name__] = features
-            return features
-        return _fun
-    return load_or_create
+class FeatureManager(object):
+    save = False
+    def __init__(self, fun=None):
+        self.fun = fun
 
+    def __call__(self, *args, **kwargs):
+        data = args[0]
+        feature_name = self._get_feature_name(args, kwargs)
+        if feature_name in data:
+            features = data[feature_name].apply(lambda x: eval(x) if '[' in x else x)
+        else:
+            features = self.fun(*args, **kwargs)
+        if self.save:
+            data[feature_name] = features
+        return features
+
+    def _get_feature_name(self, args, kwargs):
+        """ get the feature name for a function, dependent on the argument and kwargs
+        args & kwargs are not expanded because they are treated as single arguments
+        """
+        feature_name = self.fun.__name__
+        if len(args)>1:
+            feature_name += '_'
+            feature_name += '_'.join(args[1:])
+        if kwargs:
+            feature_name += '_'
+            feature_name += '_'.join([key+':'+value for key, value in sorted(kwargs.items())])
+        return feature_name
 
 class Features(object):
     def save_features_to_dataframe(self, data):
-        self.save = True
+        FeatureManager.save = True
         self._get_data_independent_features(data)
+        FeatureManager.save = False
 
 
 class Predictor(object):
