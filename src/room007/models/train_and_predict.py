@@ -107,7 +107,6 @@ def main():
         cross_validate(predictor, train_data_frames)
 
 
-
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     main()

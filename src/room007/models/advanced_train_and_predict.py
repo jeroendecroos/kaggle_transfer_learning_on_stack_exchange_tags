@@ -53,7 +53,7 @@ def sample_dataframes(dataframes, size):
 
 
 def _get_sample_size(test):
-    return 0.001 if test else 0.01
+    return 0.001 if test else 0.1
 
 
 def _get_data(args):
@@ -88,16 +88,15 @@ def main():
     args = get_arguments()
     train_data_frames, test_data_frames = _get_data(args)
     model_module = importlib.import_module(args.model)
-    predictor_factory = model_module.Predictor
     if args.eval:
-        predictor = predictor_factory(*args.args, **args.kwargs)
+        predictor = model_module.Predictor(*args.args, **args.kwargs)
         train_and_predict.evaluate_on_test_data(predictor, train_data_frames, test_data_frames)
     else:
         results = []
         options_setter = getattr(model_module, "OptionsSetter", model.OptionsSetter)()
         for name, options in options_setter.combinations(args.kwargs):
             logger.info('started cross_validation for {}'.format(name))
-            predictor = predictor_factory(*args.args, **options)
+            predictor = model_module.Predictor(*args.args, **options)
             result, time_needed = train_and_predict.time_function(
                     train_and_predict.cross_validate)(predictor, train_data_frames)
             results.append((name, result, time_needed))

@@ -4,6 +4,8 @@ import itertools
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn import linear_model
 
+
+from pandas import DataFrame
 import nltk
 import string
 
@@ -15,86 +17,97 @@ from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.linear_model import LogisticRegression
 
 from room007.models import model
+from room007.data import info
+from room007.data import feature_data
 
 
 stop_words = nltk.corpus.stopwords.words('english') + [x for x in string.printable]
 
+@feature_data.FeatureManager
+def _is_in_question(data):
+    def is_in_question(row):
+        features = []
+        question = 0
+        for word in row.split()[::-1]:
+            if word in '.:;!?':
+                question = int(word == '?')
+            if word not in stop_words:
+                features.append(question)
+        return features[::-1]
+    return data['titlecontent'].apply(
+        is_in_question
+        )
 
-class Features(object):
+@feature_data.FeatureManager
+def _title_or_content(data):
+    return data.apply(
+        lambda row: [1] * len(row['title_non_stop_words']) + [0] * len(row['content_non_stop_words']),
+        axis=1)
+
+
+def _add_number_of_non_stop_words(data):
+    split_row = lambda row: [x for x in row.split() if x not in stop_words]
+    data['title_non_stop_words'] = data['title'].apply(split_row)
+    data['content_non_stop_words'] = data['content'].apply(split_row)
+
+@feature_data.FeatureManager
+def _times_word_in(data, column):
+    return data.apply(
+        lambda row: [row[column].split().count(word)
+                     for word in row['titlecontent'].split()
+                     if word not in stop_words],
+        axis=1)
+
+class Features(model.Features):
     def __init__(self, functional_test=False, changes=False):
         self.functional_test = functional_test
         self.tf_idf_vectorizer = None
         self.changes = changes
+        self.save = False
 
     def fit(self, train_data):
         self._train_tf_idf_vectorizer(train_data)
 
     def transform(self, data):
-        self._add_number_of_non_stop_words(data)
-        features = [
-                self._get_tf_idf_features_per_word(data),
-                self._times_word_in(data, 'title'),
-                self._times_word_in(data, 'content'),
-                self._is_in_question(data),
-        ]
-     #   if self.changes:
-        features += [self._title_or_content(data)]
+        features = self._get_features_per_row(data)
+        for i, feat in enumerate(features):
+            features[i] = list(itertools.chain.from_iterable(feat))
         feats = tuple(zip(*features))
         return feats
 
-    def _title_or_content(self, data):
-        return list(itertools.chain(*data.apply(
-            lambda row: [1] * len(row['title_non_stop_words']) + [0] * len(row['content_non_stop_words']),
-            axis=1)))
+    def _get_features_per_row(self, data):
+        features = self._get_data_independent_features(data)
+        features.append(self._get_tf_idf_features_per_word(data))
+        if self.changes:
+            #  add features here you want to see impact of
+            pass
+        return features
 
-
-    def _add_number_of_non_stop_words(self, data):
-        split_row = lambda row: [x for x in row.split() if x not in stop_words]
-        data['title_non_stop_words'] = data['title'].apply(split_row)
-        data['content_non_stop_words'] = data['content'].apply(split_row)
-
-
-    def _is_in_question(self, data):
-        def is_in_question(row):
-            features = []
-            question = 0
-            for word in row.split()[::-1]:
-                if word in '.:;!?':
-                    question = int(word == '?')
-                if word not in stop_words:
-                    features.append(question)
-            return features[::-1]
-        return list(itertools.chain(*data['titlecontent'].apply(
-            is_in_question
-            )))
-
-    def _times_word_in(self, data, column):
-        return list(itertools.chain(*data.apply(
-            lambda row: [row[column].split().count(word)
-                         for word in row['titlecontent'].split()
-                         if word not in stop_words], axis=1)
-            ))
+    def _get_data_independent_features(self, data):
+        _add_number_of_non_stop_words(data)
+        return [
+                _times_word_in(data, 'title'),
+                _times_word_in(data, 'content'),
+                _is_in_question(data),
+                _title_or_content(data),
+        ]
 
 
     def _train_tf_idf_vectorizer(self, data):
         self.tf_idf_vectorizer = TfidfVectorizer(stop_words=stop_words)
         self.tf_idf_vectorizer.fit(data['titlecontent'])
-        #if self.functional_test:
-        #    self._write_example_it_idf_features(data)
-
 
     def _get_tf_idf_features_per_word(self, train_data):
         tf_idf_data = self.tf_idf_vectorizer.transform(train_data['titlecontent'])
         train_data['index'] = range(tf_idf_data.shape[0])
         voc = self.tf_idf_vectorizer.vocabulary_
-        features = list(itertools.chain(*train_data.apply(
+        features = train_data.apply(
             lambda row: [tf_idf_data[row['index'], voc.get(word)]
-                         if voc.get(word) else (0 if not self.changes else 1)
+                         if voc.get(word) else 1
                          for word in row['titlecontent'].split()
-                         if word not in stop_words], axis=1)
-            ))
+                         if word not in stop_words],
+            axis=1)
         return features
-
 
     def _write_some_features(self, features, keys):
         with open('debug_files/feats_per_word', 'wt') as outstream:
@@ -103,29 +116,23 @@ class Features(object):
                 outstream.write(','.join(f for f in feat) + '\n')
 
 
-class Option(object):
-    def __init__(self, options, default):
-        self.choices = options
-        self.default = default
-
-
 class OptionsSetter(model.OptionsSetter):
     def __init__(self):
         self.options = {}
-        self.options['classifier'] = Option(
-            {"Nearest Neighbors": KNeighborsClassifier(3),
+        self.options['classifier'] = model.Option(
+            {#"Nearest Neighbors": KNeighborsClassifier(3),
              # "Linear SVM": SVC(kernel="linear", C=0.025),
              # "RBF SVM": SVC(gamma=2, C=1),
              # "Gaussian Process":  GaussianProcessClassifier(1.0 * RBF(1.0), warm_start=True), # too slow?
-             "Decision Tree": DecisionTreeClassifier(max_depth=5),
-             "Random Forest": RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
+             # "Decision Tree": DecisionTreeClassifier(max_depth=5),
+             # "Random Forest": RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
              # "Neural Net": MLPClassifier(alpha=1),
-             "AdaBoost": AdaBoostClassifier(),
+             # "AdaBoost": AdaBoostClassifier(),
              "Naive Bayes": GaussianNB(),
              "Logistic Regression": LogisticRegression(class_weight='balanced'),
              "QDA": QuadraticDiscriminantAnalysis()
              }, "Logistic Regression")
-        self.options['changes'] = Option(
+        self.options['changes'] = model.Option(
             {'True': True,
              'False': False,
              }, 'True')
