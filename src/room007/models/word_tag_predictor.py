@@ -18,13 +18,12 @@ from sklearn.linear_model import LogisticRegression
 
 from room007.models import model
 from room007.data import info
+from room007.data import feature_data
 
-import spacy
-#nlp = spacy.load('en')
 
 stop_words = nltk.corpus.stopwords.words('english') + [x for x in string.printable]
 
-@model.FeatureManager
+@feature_data.FeatureManager
 def _is_in_question(data):
     def is_in_question(row):
         features = []
@@ -39,7 +38,7 @@ def _is_in_question(data):
         is_in_question
         )
 
-@model.FeatureManager
+@feature_data.FeatureManager
 def _title_or_content(data):
     return data.apply(
         lambda row: [1] * len(row['title_non_stop_words']) + [0] * len(row['content_non_stop_words']),
@@ -51,7 +50,7 @@ def _add_number_of_non_stop_words(data):
     data['title_non_stop_words'] = data['title'].apply(split_row)
     data['content_non_stop_words'] = data['content'].apply(split_row)
 
-@model.FeatureManager
+@feature_data.FeatureManager
 def _times_word_in(data, column):
     return data.apply(
         lambda row: [row[column].split().count(word)
@@ -72,17 +71,16 @@ class Features(model.Features):
     def transform(self, data):
         features = self._get_features_per_row(data)
         for i, feat in enumerate(features):
-            features[i] = list(itertools.chain(*feat))
+            features[i] = list(itertools.chain.from_iterable(feat))
         feats = tuple(zip(*features))
         return feats
 
     def _get_features_per_row(self, data):
         features = self._get_data_independent_features(data)
         features.append(self._get_tf_idf_features_per_word(data))
-        #if self.changes:
-        #    s_feats = [self._title_or_content(data)]
-        #    s_feats = self._spacy_features(data)
-        #    features.extend(s_feats)
+        if self.changes:
+            #  add features here you want to see impact of
+            pass
         return features
 
     def _get_data_independent_features(self, data):
@@ -94,16 +92,10 @@ class Features(model.Features):
                 _title_or_content(data),
         ]
 
-    def _spacy_features(self, data):
-        return [data.apply(
-            lambda row: [int(tags.pos_ == "NOUN") for word, tags in zip(row['titlecontent'].split(), nlp(row['titlecontent'])) if word not in stop_words],
-            axis=1)]
 
     def _train_tf_idf_vectorizer(self, data):
         self.tf_idf_vectorizer = TfidfVectorizer(stop_words=stop_words)
         self.tf_idf_vectorizer.fit(data['titlecontent'])
-        #if self.functional_test:
-        #    self._write_example_it_idf_features(data)
 
     def _get_tf_idf_features_per_word(self, train_data):
         tf_idf_data = self.tf_idf_vectorizer.transform(train_data['titlecontent'])
