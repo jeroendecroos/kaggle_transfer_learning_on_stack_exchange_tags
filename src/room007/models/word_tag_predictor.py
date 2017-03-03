@@ -8,6 +8,7 @@ from sklearn import linear_model
 from pandas import DataFrame
 import nltk
 import string
+import spacy
 
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -20,8 +21,42 @@ from room007.models import model
 from room007.data import info
 from room007.data import feature_data
 
-
 stop_words = nltk.corpus.stopwords.words('english') + [x for x in string.printable]
+
+class SpacyFeatures(model.features):
+    def __init__(self, functional_test=False, changes=False):
+        self.functional_test = functional_test
+        self.changes = changes
+
+    def fit(self, train_data):
+        pass
+
+    def transform(self, data):
+        raise NotImplementedError()
+
+    def get_features_per_row(self, data):
+        features = self._get_data_independent_features(data)
+        if self.changes:
+            pass
+        return features
+
+    def _get_data_independent_features(self, data):
+        _add_number_of_non_stop_words(data)
+        if not self.changes:
+            return [_spacy_features(data)]
+        else:
+            return []
+
+
+@feature_data.FeatureManager
+def _spacy_features(data):
+    #  spacy.load is a heavy process, we only want to do this once, and only if we call this function
+    if not hasattr(_spacy_features, 'nlp'):
+        _spacy_features.nlp = spacy.load('en')
+    return data.apply(
+        lambda row: [tags.pos_ == "NOUN" for word, tags in zip(row['titlecontent'].split(), nlp(row['titlecontent'])) if word not in stop_words],
+        axis=1)
+
 
 @feature_data.FeatureManager
 def _is_in_question(data):
@@ -62,8 +97,8 @@ class Features(model.Features):
     def __init__(self, functional_test=False, changes=False):
         self.functional_test = functional_test
         self.tf_idf_vectorizer = None
+        self.spacy_features = SpacyFeatures(functional_test, changes)
         self.changes = changes
-        self.save = False
 
     def fit(self, train_data):
         self._train_tf_idf_vectorizer(train_data)
@@ -71,7 +106,7 @@ class Features(model.Features):
     def transform(self, data):
         features = self._get_features_per_row(data)
         for i, feat in enumerate(features):
-            features[i] = list(itertools.chain.from_iterable(feat))
+            features[i] = itertools.chain.from_iterable(feat)
         feats = tuple(zip(*features))
         return feats
 
@@ -90,7 +125,7 @@ class Features(model.Features):
                 _times_word_in(data, 'content'),
                 _is_in_question(data),
                 _title_or_content(data),
-        ]
+        ] + self.spacy_features.get_features_per_row(data)
 
 
     def _train_tf_idf_vectorizer(self, data):

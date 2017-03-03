@@ -57,7 +57,7 @@ def sample_dataframes(dataframes, size):
 
 
 def _get_sample_size(test):
-    return 0.001 if test else 0.1
+    return 0.001 if test else 0.2
 
 
 def _get_data(args):
